@@ -11,6 +11,7 @@ class PopularityRankerV2:
         
         # Subreddit-specific comment multipliers based on comment scarcity
         self.subreddit_multipliers = {
+            # Finance subreddits
             'Bitcoin': 3.0,                    # Comments very rare (16.9 avg ratio)
             'cryptocurrency': 2.5,             # Comments rare (8.9 avg ratio)
             'stocks': 2.0,                     # Comments somewhat rare (6.2 avg ratio)
@@ -24,7 +25,31 @@ class PopularityRankerV2:
             'wallstreetbets': 1.5,             # Default for meme-heavy content
             'SecurityAnalysis': 1.0,           # Default for analysis content
             'thetagang': 1.2,                  # Default for strategy content
-            'personalfinance': 0.8             # Default for help content
+            'personalfinance': 0.8,            # Default for help content
+            
+            # Entertainment subreddits
+            'movies': 1.8,                     # General movies discussion
+            'television': 1.8,                 # General TV discussion
+            'netflix': 1.2,                    # Platform-specific content
+            'hulu': 1.2,                       # Platform-specific content
+            'DisneyPlus': 1.5,                 # Platform-specific content
+            'PrimeVideo': 1.5,                 # Platform-specific content
+            'HBOMax': 1.5,                     # Platform-specific content
+            'AppleTVPlus': 1.8,                # Smaller platform, comments rarer
+            'anime': 1.0,                      # Active community with regular comments
+            'animesuggest': 0.8,               # Recommendation posts get many comments
+            'horror': 1.5,                     # Genre-specific discussion
+            'horrormovies': 1.5,               # Genre-specific discussion
+            'MovieSuggestions': 0.8,           # Recommendation posts get many comments
+            'televisionsuggestions': 0.8,      # Recommendation posts get many comments
+            'NetflixBestOf': 1.0,              # Curated content with decent engagement
+            'documentaries': 1.8,              # Niche content, fewer comments
+            'tipofmytongue': 0.6,              # Help posts get many responses
+            'ifyoulikeblank': 0.8,             # Recommendation posts get many comments
+            'criterion': 2.0,                  # Niche cinephile community
+            'truefilm': 2.0,                   # Serious film discussion, fewer comments
+            'flicks': 1.5,                     # General movie discussion
+            'letterboxd': 1.8                  # Film diary/review community
         }
         
     def calculate_popularity_score(self, df):

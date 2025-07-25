@@ -25,7 +25,11 @@ class EntertainmentRedditExtractor:
             # Recommendation-focused (3)
             'MovieSuggestions', 'televisionsuggestions', 'NetflixBestOf',
             # Documentary (1)
-            'documentaries'
+            'documentaries',
+            # Identification & Help focused (2)
+            'tipofmytongue', 'ifyoulikeblank',
+            # Lists & Rankings focused (3) 
+            'criterion', 'truefilm', 'flicks'
         ]
     
     def get_weekly_post_count(self, subreddit_name, limit=1000):

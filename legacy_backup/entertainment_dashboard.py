@@ -4,70 +4,42 @@ import json
 import html
 import os
 
-class CleanRedditDashboard:
-    def __init__(self, weekly_csv='week_reddit_posts.csv', daily_csv='day_reddit_posts.csv', 
-                 weekly_entertainment_csv='week_entertainment_posts.csv', daily_entertainment_csv='day_entertainment_posts.csv'):
-        # Load finance datasets
+class CleanMoviesShowsDashboard:
+    def __init__(self, weekly_csv='week_entertainment_posts.csv', daily_csv='day_entertainment_posts.csv'):
+        # Load both datasets - handle None values for missing files
         if weekly_csv and os.path.exists(weekly_csv):
             try:
                 self.weekly_df = pd.read_csv(weekly_csv)
                 self.weekly_df['created_utc'] = pd.to_datetime(self.weekly_df['created_utc'])
-                print(f"✅ Loaded weekly finance data: {len(self.weekly_df)} posts from {weekly_csv}")
+                print(f"✅ Loaded weekly data: {len(self.weekly_df)} posts from {weekly_csv}")
             except Exception as e:
                 print(f"❌ Error loading {weekly_csv}: {e}")
                 self.weekly_df = pd.DataFrame()
         else:
             if weekly_csv:
-                print(f"⚠️  Weekly finance file not found: {weekly_csv}")
+                print(f"⚠️  Weekly file not found: {weekly_csv}")
             self.weekly_df = pd.DataFrame()
             
         if daily_csv and os.path.exists(daily_csv):
             try:
                 self.daily_df = pd.read_csv(daily_csv)
                 self.daily_df['created_utc'] = pd.to_datetime(self.daily_df['created_utc'])
-                print(f"✅ Loaded daily finance data: {len(self.daily_df)} posts from {daily_csv}")
+                print(f"✅ Loaded daily data: {len(self.daily_df)} posts from {daily_csv}")
             except Exception as e:
                 print(f"❌ Error loading {daily_csv}: {e}")
                 self.daily_df = pd.DataFrame()
         else:
             if daily_csv:
-                print(f"⚠️  Daily finance file not found: {daily_csv}")
+                print(f"⚠️  Daily file not found: {daily_csv}")
             self.daily_df = pd.DataFrame()
-        
-        # Load entertainment datasets
-        if weekly_entertainment_csv and os.path.exists(weekly_entertainment_csv):
-            try:
-                self.weekly_entertainment_df = pd.read_csv(weekly_entertainment_csv)
-                self.weekly_entertainment_df['created_utc'] = pd.to_datetime(self.weekly_entertainment_df['created_utc'])
-                print(f"✅ Loaded weekly entertainment data: {len(self.weekly_entertainment_df)} posts from {weekly_entertainment_csv}")
-            except Exception as e:
-                print(f"❌ Error loading {weekly_entertainment_csv}: {e}")
-                self.weekly_entertainment_df = pd.DataFrame()
-        else:
-            if weekly_entertainment_csv:
-                print(f"⚠️  Weekly entertainment file not found: {weekly_entertainment_csv}")
-            self.weekly_entertainment_df = pd.DataFrame()
-            
-        if daily_entertainment_csv and os.path.exists(daily_entertainment_csv):
-            try:
-                self.daily_entertainment_df = pd.read_csv(daily_entertainment_csv)
-                self.daily_entertainment_df['created_utc'] = pd.to_datetime(self.daily_entertainment_df['created_utc'])
-                print(f"✅ Loaded daily entertainment data: {len(self.daily_entertainment_df)} posts from {daily_entertainment_csv}")
-            except Exception as e:
-                print(f"❌ Error loading {daily_entertainment_csv}: {e}")
-                self.daily_entertainment_df = pd.DataFrame()
-        else:
-            if daily_entertainment_csv:
-                print(f"⚠️  Daily entertainment file not found: {daily_entertainment_csv}")
-            self.daily_entertainment_df = pd.DataFrame()
         
         # Default to weekly for backwards compatibility
         self.df = self.weekly_df if not self.weekly_df.empty else self.daily_df
         
-    def generate_dashboard(self, output_file='reddit_dashboard.html'):
+    def generate_dashboard(self, output_file='movies_shows_dashboard.html'):
         """Generate a unified dashboard with daily/weekly toggle"""
         
-        # Calculate stats for finance datasets
+        # Calculate stats for both datasets
         weekly_stats = {
             'total_posts': len(self.weekly_df) if not self.weekly_df.empty else 0,
             'total_upvotes': self.weekly_df['score'].sum() if not self.weekly_df.empty else 0,
@@ -78,24 +50,13 @@ class CleanRedditDashboard:
             'total_upvotes': self.daily_df['score'].sum() if not self.daily_df.empty else 0,
         }
         
-        # Calculate stats for entertainment datasets
-        weekly_entertainment_stats = {
-            'total_posts': len(self.weekly_entertainment_df) if not self.weekly_entertainment_df.empty else 0,
-            'total_upvotes': self.weekly_entertainment_df['score'].sum() if not self.weekly_entertainment_df.empty else 0,
-        }
-        
-        daily_entertainment_stats = {
-            'total_posts': len(self.daily_entertainment_df) if not self.daily_entertainment_df.empty else 0,
-            'total_upvotes': self.daily_entertainment_df['score'].sum() if not self.daily_entertainment_df.empty else 0,
-        }
-        
         # Generate HTML
         html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reddit Finance Dashboard</title>
+    <title>Reddit Movies & Shows Dashboard</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         
@@ -132,42 +93,6 @@ class CleanRedditDashboard:
             font-weight: 700;
             margin-bottom: 4px;
             margin-left: 12px;
-        }}
-        
-        .category-dropdown {{
-            background: #2a2a2a;
-            color: white;
-            border: 1px solid #4a5568;
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 1.5rem;
-            font-weight: 700;
-            cursor: pointer;
-            outline: none;
-            width: calc(100% - 12px);
-            margin-left: 12px;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 8px center;
-            background-repeat: no-repeat;
-            background-size: 16px;
-            padding-right: 40px;
-        }}
-        
-        .category-dropdown:hover {{
-            border-color: #ff6b35;
-        }}
-        
-        .category-dropdown:focus {{
-            border-color: #ff6b35;
-            box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.2);
-        }}
-        
-        .category-dropdown option {{
-            background: #2a2a2a;
-            color: white;
-            font-size: 0.875rem;
-            padding: 8px 12px;
         }}
         
         .sidebar-subtitle {{
@@ -411,14 +336,6 @@ class CleanRedditDashboard:
         }}
         
         .time-content.active {{
-            display: block;
-        }}
-        
-        .category-content {{
-            display: none;
-        }}
-        
-        .category-content.active {{
             display: block;
         }}
         
@@ -666,12 +583,9 @@ class CleanRedditDashboard:
         <div class="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-title">
-                    <select id="categorySelect" class="category-dropdown" onchange="switchCategory(this.value)">
-                        <option value="finance" selected>Finance</option>
-                        <option value="movies_shows">Movies & Shows</option>
-                    </select>
+                    Movies & Shows
                 </div>
-                <img src="finance-logo.png" alt="Logo" class="sidebar-logo" id="sidebarLogo">
+                <img src="movies-logo.png" alt="Movies & Shows Logo" class="sidebar-logo">
                 <div class="sidebar-subtitle">Dashboard</div>
             </div>
             
@@ -732,139 +646,62 @@ class CleanRedditDashboard:
                     <div id="searchResults" class="search-results"></div>
                 </div>
                 
-                <div id="financeCategory" class="category-content active">
-                    <div id="weeklyContent" class="time-content active">
-                        {self._generate_posts_html('weekly')}
-                    </div>
-                    <div id="dailyContent" class="time-content">
-                        {self._generate_posts_html('daily')}
-                    </div>
+                <div id="weeklyContent" class="time-content active">
+                    {self._generate_posts_html('weekly')}
                 </div>
-                
-                <div id="moviesShowsCategory" class="category-content">
-                    <div id="weeklyMoviesContent" class="time-content active">
-                        {self._generate_entertainment_posts_html('weekly')}
-                    </div>
-                    <div id="dailyMoviesContent" class="time-content">
-                        {self._generate_entertainment_posts_html('daily')}
-                    </div>
+                <div id="dailyContent" class="time-content">
+                    {self._generate_posts_html('daily')}
                 </div>
             </div>
         </div>
     </div>
     
     <script>
-        // Data for both categories and time filters
+        // Data for both time filters
         const statsData = {{
-            finance: {{
-                weekly: {{
-                    posts: {weekly_stats['total_posts']},
-                    upvotes: {weekly_stats['total_upvotes']}
-                }},
-                daily: {{
-                    posts: {daily_stats['total_posts']},
-                    upvotes: {daily_stats['total_upvotes']}
-                }}
+            weekly: {{
+                posts: {weekly_stats['total_posts']},
+                upvotes: {weekly_stats['total_upvotes']}
             }},
-            movies_shows: {{
-                weekly: {{
-                    posts: {weekly_entertainment_stats['total_posts']},
-                    upvotes: {weekly_entertainment_stats['total_upvotes']}
-                }},
-                daily: {{
-                    posts: {daily_entertainment_stats['total_posts']},
-                    upvotes: {daily_entertainment_stats['total_upvotes']}
-                }}
+            daily: {{
+                posts: {daily_stats['total_posts']},
+                upvotes: {daily_stats['total_upvotes']}
             }}
         }};
         
         const categoryData = {{
-            finance: {{
-                weekly: `{self._generate_category_tabs('weekly')}`,
-                daily: `{self._generate_category_tabs('daily')}`
-            }},
-            movies_shows: {{
-                weekly: `{self._generate_entertainment_category_tabs('weekly')}`,
-                daily: `{self._generate_entertainment_category_tabs('daily')}`
-            }}
+            weekly: `{self._generate_category_tabs('weekly')}`,
+            daily: `{self._generate_category_tabs('daily')}`
         }};
-        
-        let currentCategory = 'finance';
-        
-        function switchCategory(category) {{
-            currentCategory = category;
-            
-            // Hide all category content
-            document.querySelectorAll('.category-content').forEach(content => {{
-                content.classList.remove('active');
-            }});
-            
-            // Show selected category content
-            if (category === 'finance') {{
-                document.getElementById('financeCategory').classList.add('active');
-                document.getElementById('sidebarLogo').src = 'finance-logo.png';
-                document.getElementById('sidebarLogo').alt = 'Finance Logo';
-            }} else if (category === 'movies_shows') {{
-                document.getElementById('moviesShowsCategory').classList.add('active');
-                document.getElementById('sidebarLogo').src = 'movies-logo.png';
-                document.getElementById('sidebarLogo').alt = 'Movies & Shows Logo';
-            }}
-            
-            // Update stats based on current category and time filter
-            const timeFilter = document.getElementById('timeFilterSelect').value;
-            switchTimeFilter(timeFilter);
-            
-            // Clear search when switching categories
-            clearSearch();
-        }}
         
         function switchTimeFilter(timeFilter) {{
             // Update dropdown value (in case called programmatically)
             document.getElementById('timeFilterSelect').value = timeFilter;
             
-            // Update stats based on current category
-            if (statsData[currentCategory] && statsData[currentCategory][timeFilter]) {{
-                document.getElementById('totalPosts').textContent = statsData[currentCategory][timeFilter].posts.toLocaleString();
-                document.getElementById('totalUpvotes').textContent = statsData[currentCategory][timeFilter].upvotes.toLocaleString();
-            }} else {{
-                document.getElementById('totalPosts').textContent = '0';
-                document.getElementById('totalUpvotes').textContent = '0';
-            }}
+            // Update stats
+            document.getElementById('totalPosts').textContent = statsData[timeFilter].posts.toLocaleString();
+            document.getElementById('totalUpvotes').textContent = statsData[timeFilter].upvotes.toLocaleString();
             
-            // Update content visibility within current category
-            const activeCategory = document.querySelector('.category-content.active');
-            if (activeCategory) {{
-                activeCategory.querySelectorAll('.time-content').forEach(content => {{
-                    content.classList.remove('active');
-                    content.style.display = 'none';
-                }});
-                
-                // Show appropriate time content based on category
-                if (currentCategory === 'finance') {{
-                    document.getElementById(timeFilter + 'Content').classList.add('active');
-                    document.getElementById(timeFilter + 'Content').style.display = 'block';
-                }} else if (currentCategory === 'movies_shows') {{
-                    document.getElementById(timeFilter + 'MoviesContent').classList.add('active');
-                    document.getElementById(timeFilter + 'MoviesContent').style.display = 'block';
-                }}
-            }}
+            // Update content visibility
+            document.querySelectorAll('.time-content').forEach(content => {{
+                content.classList.remove('active');
+                content.style.display = 'none';
+            }});
+            document.getElementById(timeFilter + 'Content').classList.add('active');
+            document.getElementById(timeFilter + 'Content').style.display = 'block';
             
-            // Update category buttons
+            // Update category buttons - replace the content after All Posts button
             const categoryTabs = document.getElementById('categoryTabs');
             const allBtn = document.getElementById('allBtn');
-            if (allBtn) {{
-                // Remove all buttons except the All Posts button
-                const buttonsToRemove = categoryTabs.querySelectorAll('.tab-btn:not(#allBtn)');
-                buttonsToRemove.forEach(btn => btn.remove());
-                // Add new category buttons based on current category
-                if (categoryData[currentCategory] && categoryData[currentCategory][timeFilter]) {{
-                    allBtn.insertAdjacentHTML('afterend', categoryData[currentCategory][timeFilter]);
-                }}
-                
-                // Reset category filter to 'all'
-                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-                allBtn.classList.add('active');
-            }}
+            // Remove all buttons except the All Posts button
+            const buttonsToRemove = categoryTabs.querySelectorAll('.tab-btn:not(#allBtn)');
+            buttonsToRemove.forEach(btn => btn.remove());
+            // Add new category buttons
+            allBtn.insertAdjacentHTML('afterend', categoryData[timeFilter]);
+            
+            // Reset category filter to 'all'
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('allBtn').classList.add('active');
             
             // Clear search
             clearSearch();
@@ -1013,10 +850,9 @@ class CleanRedditDashboard:
             }}
             
             const searchTerms = searchInput.toLowerCase().split(/\\s+/).filter(term => term.length > 0);
-            // Only search within the currently active category and time filter content
-            const activeCategory = document.querySelector('.category-content.active');
-            const activeContent = activeCategory ? activeCategory.querySelector('.time-content.active') : null;
-            const allPosts = activeContent ? activeContent.querySelectorAll('.post-card') : [];
+            // Only search within the currently active time filter content
+            const activeContent = document.querySelector('.time-content.active');
+            const allPosts = activeContent ? activeContent.querySelectorAll('.post-card') : document.querySelectorAll('.post-card');
             let matchCount = 0;
             
             // Show all category sections first
@@ -1172,9 +1008,8 @@ class CleanRedditDashboard:
         function sortPosts() {{
             const sortBy = document.getElementById('sortSelect').value;
             
-            // Get the currently active category and time filter content
-            const activeCategory = document.querySelector('.category-content.active');
-            const activeContent = activeCategory ? activeCategory.querySelector('.time-content.active') : null;
+            // Get the currently active time filter content
+            const activeContent = document.querySelector('.time-content.active');
             if (!activeContent) return;
             
             // Get all category sections within the active content
@@ -1302,76 +1137,6 @@ class CleanRedditDashboard:
         
         # Define category priority order (most important first)
         category_priority = [
-            'Analysis & Education',
-            'Market News & Politics', 
-            'Personal Trading Stories',
-            'Questions & Help',
-            'Community Discussion',
-            'Memes & Entertainment'
-        ]
-        
-        # Get categories in priority order, only including ones that exist in data
-        available_categories = df['category'].unique()
-        ordered_categories = [cat for cat in category_priority if cat in available_categories]
-        # Add any unexpected categories at the end
-        ordered_categories.extend([cat for cat in available_categories if cat not in category_priority])
-        
-        for category in ordered_categories:
-            category_posts = df[df['category'] == category].sort_values('popularity_score', ascending=False)
-            safe_category = category.replace(' ', '_').replace('&', 'and').lower()
-            
-            posts_html += f'<div class="category-section" id="category-{safe_category}-{time_filter}">\n'
-            posts_html += f'<div class="category-header-row">\n'
-            posts_html += f'<h2 class="category-header">{category}</h2>\n'
-            posts_html += f'<button class="summarize-btn" onclick="summarizeCategory(\'{category}\', \'{time_filter}\')" data-category="{category}" data-time-filter="{time_filter}">\n'
-            posts_html += f'Summarize\n'
-            posts_html += f'</button>\n'
-            posts_html += f'</div>\n'
-            posts_html += f'<div class="summary-container" id="summary-{safe_category}-{time_filter}" style="display: none;">\n'
-            posts_html += f'<div class="summary-content"></div>\n'
-            posts_html += f'</div>\n'
-            
-            # Generate all posts but mark them as visible/hidden for pagination
-            post_count = 0
-            for _, post in category_posts.iterrows():
-                post_count += 1
-                # First 10 posts are visible, rest are hidden
-                visibility_class = 'post-visible' if post_count <= 10 else 'post-hidden'
-                posts_html += self._generate_post_card(post, safe_category, visibility_class)
-            
-            # Add pagination buttons if there are more than 10 posts
-            if len(category_posts) > 10:
-                posts_html += f'<div class="pagination-container" id="pagination-{safe_category}-{time_filter}">\n'
-                posts_html += f'<button class="show-more-btn" onclick="showMorePosts(\'{safe_category}-{time_filter}\')" data-category="{safe_category}-{time_filter}" data-shown="10" data-total="{len(category_posts)}">Show More</button>\n'
-                posts_html += f'<button class="show-less-btn" onclick="showLessPosts(\'{safe_category}-{time_filter}\')" data-category="{safe_category}-{time_filter}" style="display: none;">Show Less</button>\n'
-                posts_html += f'</div>\n'
-            
-            posts_html += '</div>\n'
-        
-        return posts_html
-    
-    def _generate_entertainment_category_tabs(self, time_filter='weekly'):
-        """Generate category filter tabs for entertainment data"""
-        df = self.weekly_entertainment_df if time_filter == 'weekly' else self.daily_entertainment_df
-        if df.empty:
-            return ""
-            
-        tabs = ""
-        for category, count in df['category'].value_counts().items():
-            safe_category = category.replace(' ', '_').replace('&', 'and').lower()
-            tabs += f'<button class="tab-btn" onclick="showCategory(\'{safe_category}\')">{category} ({count})</button>\n'
-        return tabs
-    
-    def _generate_entertainment_posts_html(self, time_filter='weekly'):
-        """Generate HTML for entertainment posts"""
-        df = self.weekly_entertainment_df if time_filter == 'weekly' else self.daily_entertainment_df
-        if df.empty:
-            return f"<div class='category-section'><h2>No {time_filter} entertainment data available</h2><p>Please run: <code>python generate_entertainment_data.py</code></p></div>"
-            
-        posts_html = ""
-        
-        # Define category priority order for entertainment
-        category_priority = [
             'Recommendation Requests',
             'Reviews & Discussions', 
             'News & Announcements',
@@ -1432,8 +1197,6 @@ class CleanRedditDashboard:
             selftext = ''
         search_content = html.escape(str(selftext).lower()[:500])  # Limit content length
         
-        # Ticker extraction removed
-        
         time_ago = self._time_ago(post['created_utc'])
         
         return f"""
@@ -1475,5 +1238,5 @@ class CleanRedditDashboard:
             return f"{diff.seconds // 60}m ago"
 
 if __name__ == "__main__":
-    dashboard = CleanRedditDashboard('week_reddit_posts.csv', 'day_reddit_posts.csv')
+    dashboard = CleanMoviesShowsDashboard('week_entertainment_posts.csv', 'day_entertainment_posts.csv')
     dashboard.generate_dashboard()
