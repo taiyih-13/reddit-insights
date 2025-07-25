@@ -11,15 +11,17 @@ class RealTimeUpdater:
         self.time_filter = time_filter
         self.data_file = f'{time_filter}_reddit_posts.csv'
         self.state_file = f'pipeline_state_{time_filter}.json'
-        self.dashboard_file = f'reddit_dashboard_{time_filter}.html'
         self.extractor = BalancedExtractor()
         
         # Update frequencies (in hours)
         self.automated_extraction_interval = 6  # 6 hours
         self.full_refresh_interval = 24 # 24 hours (daily cleanup)
         
-        # Data retention (keep 7 days)
-        self.retention_days = 7
+        # Data retention based on time filter
+        if time_filter == 'day':
+            self.retention_days = 1  # Keep 1 day for daily pipeline
+        else:
+            self.retention_days = 7  # Keep 7 days for weekly pipeline
         
     def get_pipeline_state(self):
         """Load pipeline state from file"""
@@ -69,17 +71,13 @@ class RealTimeUpdater:
             if len(new_df) > 0:
                 print(f"   Extracted {len(new_df)} quality posts")
                 
-                # Save the new data (replaces old data completely)
-                new_df.to_csv(self.data_file, index=False)
-                
-                # Regenerate dashboard with new data
-                dashboard = RedditDashboard(self.data_file)
-                dashboard.generate_dashboard(self.dashboard_file)
+                # Incremental update instead of complete replacement
+                self._update_data_incrementally(new_df)
                 
                 # Update state tracking
                 self._update_state('last_automated_extraction', datetime.now())
                 
-                print(f"   ✅ Dashboard updated: {self.dashboard_file}")
+                print(f"   ✅ Data updated successfully")
                 print(f"   📊 Category breakdown:")
                 
                 # Show category breakdown
@@ -149,7 +147,8 @@ class RealTimeUpdater:
                 balanced_df['created_utc'] = pd.to_datetime(balanced_df['created_utc'])
                 balanced_df = balanced_df[balanced_df['created_utc'] >= cutoff_date]
                 
-                self._save_data(balanced_df)
+                # For full refresh, we do complete replacement with cleaned data
+                self._save_data(balanced_df, full_refresh=True)
                 print(f"   ✅ Full refresh complete! {len(balanced_df)} posts")
                 return True
             else:
@@ -181,21 +180,85 @@ class RealTimeUpdater:
         
         self._save_data(df_combined)
     
-    def _save_data(self, df):
+    def _update_data_incrementally(self, new_df):
+        """Incrementally update data with new posts while maintaining retention policy"""
+        print("   📊 Updating data incrementally...")
+        
+        # Load existing data if it exists
+        if os.path.exists(self.data_file):
+            try:
+                existing_df = pd.read_csv(self.data_file)
+                existing_df['created_utc'] = pd.to_datetime(existing_df['created_utc'])
+                print(f"   📄 Found existing data: {len(existing_df)} posts")
+            except Exception as e:
+                print(f"   ⚠️  Error loading existing data: {e}")
+                existing_df = pd.DataFrame()
+        else:
+            print("   📄 No existing data found, creating new dataset")
+            existing_df = pd.DataFrame()
+        
+        # Ensure new data has datetime format
+        new_df['created_utc'] = pd.to_datetime(new_df['created_utc'])
+        
+        # Combine existing and new data
+        if not existing_df.empty:
+            combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+            print(f"   🔄 Combined data: {len(existing_df)} existing + {len(new_df)} new = {len(combined_df)} total")
+        else:
+            combined_df = new_df.copy()
+            print(f"   🆕 Using new data: {len(combined_df)} posts")
+        
+        # Remove duplicates (keep most recent version)
+        combined_df = combined_df.drop_duplicates(subset=['post_id'], keep='last')
+        dedupe_count = len(pd.concat([existing_df, new_df], ignore_index=True)) - len(combined_df) if not existing_df.empty else 0
+        if dedupe_count > 0:
+            print(f"   🔍 Removed {dedupe_count} duplicate posts")
+        
+        # Apply retention policy (keep posts within retention window)
+        cutoff_date = datetime.now() - timedelta(days=self.retention_days)
+        before_retention = len(combined_df)
+        combined_df = combined_df[combined_df['created_utc'] >= cutoff_date]
+        retention_removed = before_retention - len(combined_df)
+        if retention_removed > 0:
+            print(f"   🗑️  Removed {retention_removed} posts older than {self.retention_days} days")
+        
+        # Save the updated data
+        self._save_data(combined_df, full_refresh=False)
+        print(f"   ✅ Incremental update complete: {len(combined_df)} posts in dataset")
+    
+    def _save_data(self, df, full_refresh=False):
         """Save data and regenerate unified dashboard"""
         # Save CSV
         df.to_csv(self.data_file, index=False)
         
-        # Regenerate unified dashboard
+        if full_refresh:
+            print(f"   💾 Full refresh: Saved {len(df)} posts to {self.data_file}")
+        else:
+            print(f"   💾 Incremental update: Saved {len(df)} posts to {self.data_file}")
+        
+        # Regenerate unified dashboard - ensure both files exist for unified view
         try:
             from dashboard_generator_clean import CleanRedditDashboard
-            dashboard = CleanRedditDashboard(
-                weekly_csv='week_reddit_posts.csv',
-                daily_csv='day_reddit_posts.csv'
-            )
-            # Always generate the main dashboard file
-            dashboard.generate_dashboard('reddit_dashboard.html')
-            print(f"   📊 Unified dashboard updated: reddit_dashboard.html")
+            
+            # Check which CSV files actually exist
+            weekly_exists = os.path.exists('week_reddit_posts.csv')
+            daily_exists = os.path.exists('day_reddit_posts.csv')
+            
+            if weekly_exists or daily_exists:
+                dashboard = CleanRedditDashboard(
+                    weekly_csv='week_reddit_posts.csv' if weekly_exists else None,
+                    daily_csv='day_reddit_posts.csv' if daily_exists else None
+                )
+                # Always generate the main dashboard file
+                dashboard.generate_dashboard('reddit_dashboard.html')
+                
+                file_status = []
+                if weekly_exists: file_status.append("weekly")
+                if daily_exists: file_status.append("daily")
+                print(f"   📊 Unified dashboard updated with {' and '.join(file_status)} data: reddit_dashboard.html")
+            else:
+                print(f"   ⚠️  No CSV files found for dashboard generation")
+                
         except Exception as e:
             print(f"   ⚠️  Dashboard update failed: {e}")
     
@@ -239,13 +302,11 @@ class RealTimeUpdater:
             print("⏭️  No updates needed at this time")
         
         # Show next update times
-        next_hot = state['last_hot_check'] + timedelta(hours=self.hot_posts_interval)
-        next_rebalance = state['last_rebalance'] + timedelta(hours=self.rebalance_interval)
+        next_extraction = state['last_automated_extraction'] + timedelta(hours=self.automated_extraction_interval)
         next_full = state['last_full_refresh'] + timedelta(hours=self.full_refresh_interval)
         
         print(f"\n📅 Next scheduled updates:")
-        print(f"   Hot posts: {next_hot.strftime('%H:%M:%S')}")
-        print(f"   Rebalancing: {next_rebalance.strftime('%m/%d %H:%M')}")
+        print(f"   Automated extraction: {next_extraction.strftime('%m/%d %H:%M')}")
         print(f"   Full refresh: {next_full.strftime('%m/%d %H:%M')}")
         
         return updated

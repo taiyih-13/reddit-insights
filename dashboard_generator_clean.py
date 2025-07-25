@@ -2,22 +2,35 @@ import pandas as pd
 from datetime import datetime
 import json
 import html
+import os
 
 class CleanRedditDashboard:
     def __init__(self, weekly_csv='week_reddit_posts.csv', daily_csv='day_reddit_posts.csv'):
-        # Load both datasets
-        try:
-            self.weekly_df = pd.read_csv(weekly_csv)
-            self.weekly_df['created_utc'] = pd.to_datetime(self.weekly_df['created_utc'])
-        except FileNotFoundError:
-            print(f"Warning: {weekly_csv} not found, creating empty weekly dataset")
+        # Load both datasets - handle None values for missing files
+        if weekly_csv and os.path.exists(weekly_csv):
+            try:
+                self.weekly_df = pd.read_csv(weekly_csv)
+                self.weekly_df['created_utc'] = pd.to_datetime(self.weekly_df['created_utc'])
+                print(f"✅ Loaded weekly data: {len(self.weekly_df)} posts from {weekly_csv}")
+            except Exception as e:
+                print(f"❌ Error loading {weekly_csv}: {e}")
+                self.weekly_df = pd.DataFrame()
+        else:
+            if weekly_csv:
+                print(f"⚠️  Weekly file not found: {weekly_csv}")
             self.weekly_df = pd.DataFrame()
             
-        try:
-            self.daily_df = pd.read_csv(daily_csv)
-            self.daily_df['created_utc'] = pd.to_datetime(self.daily_df['created_utc'])
-        except FileNotFoundError:
-            print(f"Warning: {daily_csv} not found, creating empty daily dataset")
+        if daily_csv and os.path.exists(daily_csv):
+            try:
+                self.daily_df = pd.read_csv(daily_csv)
+                self.daily_df['created_utc'] = pd.to_datetime(self.daily_df['created_utc'])
+                print(f"✅ Loaded daily data: {len(self.daily_df)} posts from {daily_csv}")
+            except Exception as e:
+                print(f"❌ Error loading {daily_csv}: {e}")
+                self.daily_df = pd.DataFrame()
+        else:
+            if daily_csv:
+                print(f"⚠️  Daily file not found: {daily_csv}")
             self.daily_df = pd.DataFrame()
         
         # Default to weekly for backwards compatibility
