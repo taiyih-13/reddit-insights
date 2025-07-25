@@ -1,0 +1,2251 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Reddit Analytics Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .controls h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+        
+        .control-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            align-items: end;
+        }
+        
+        .control-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .control-item label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .control-item select, .control-item button {
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .control-item select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .control-item button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .control-item button:hover {
+            background: linear-gradient(135deg, #2980b9, #1f4e79);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .data-table {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .data-table h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+            transition: background-color 0.3s ease;
+        }
+        
+        tr:hover td {
+            background-color: #f8f9fa;
+        }
+        
+        .post-title {
+            max-width: 400px;
+            word-wrap: break-word;
+        }
+        
+        .post-title a {
+            color: #2c3e50;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .post-title a:hover {
+            color: #3498db;
+            text-decoration: underline;
+        }
+        
+        .subreddit {
+            color: #e74c3c;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .category {
+            background: #ecf0f1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .score, .comments, .popularity {
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .score {
+            color: #e67e22;
+        }
+        
+        .comments {
+            color: #9b59b6;
+        }
+        
+        .popularity {
+            color: #27ae60;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        
+        .metadata {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .control-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            th, td {
+                padding: 8px 6px;
+                font-size: 0.85rem;
+            }
+            
+            .post-title {
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Enhanced Reddit Analytics Dashboard</h1>
+            <p class="subtitle">Multi-Domain Intelligence • Base Architecture v2.0</p>
+            <p>Real-time insights from finance and entertainment communities</p>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">1,443</div>
+                <div class="stat-label">Total Posts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">743</div>
+                <div class="stat-label">Finance Posts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">700</div>
+                <div class="stat-label">Entertainment Posts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">39</div>
+                <div class="stat-label">Subreddits Monitored</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <h3>📊 Data Filters & Controls</h3>
+            <div class="control-group">
+                <div class="control-item">
+                    <label for="domain-select">Domain:</label>
+                    <select id="domain-select" onchange="updateCategories()">
+                        <option value="finance">💰 Finance</option>
+                        <option value="entertainment">🎬 Entertainment</option>
+                    </select>
+                </div>
+                <div class="control-item">
+                    <label for="period-select">Time Period:</label>
+                    <select id="period-select" onchange="updateCategories()">
+                        <option value="weekly">📅 Weekly</option>
+                        <option value="daily">📆 Daily</option>
+                    </select>
+                </div>
+                <div class="control-item">
+                    <label for="category-select">Category:</label>
+                    <select id="category-select">
+                        <option value="">Select a category</option>\n<option value="Personal Trading Stories">Personal Trading Stories (245 posts)</option>\n<option value="Questions &amp; Help">Questions &amp; Help (145 posts)</option>\n<option value="Market News &amp; Politics">Market News &amp; Politics (79 posts)</option>\n<option value="Analysis &amp; Education">Analysis &amp; Education (65 posts)</option>\n<option value="Community Discussion">Community Discussion (64 posts)</option>\n<option value="Memes &amp; Entertainment">Memes &amp; Entertainment (24 posts)</option>
+                    </select>
+                </div>
+                <div class="control-item">
+                    <label>&nbsp;</label>
+                    <button onclick="loadPosts()">🔍 Load Posts</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="data-table">
+            <h3 id="table-title">📈 Top Posts - Finance Weekly</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Post Title</th>
+                            <th>Subreddit</th>
+                            <th>Category</th>
+                            <th>Score</th>
+                            <th>Comments</th>
+                            <th>Popularity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="posts-tbody">
+                        <tr><td colspan="6" class="loading">🔄 Select filters and click "Load Posts" to view data</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="metadata">
+            <p><strong>Enhanced Dashboard v2.0</strong> | Generated: 2025-07-25 18:37:03 | 
+            Architecture: Base Classes + Performance Optimization | 
+            Domains: Finance, Entertainment</p>
+        </div>
+    </div>
+    
+    <script>
+        // Category data for different combinations
+        const categoryData = {
+            'finance': {
+                'weekly': `<option value="">Select a category</option>\n<option value="Personal Trading Stories">Personal Trading Stories (245 posts)</option>\n<option value="Questions &amp; Help">Questions &amp; Help (145 posts)</option>\n<option value="Market News &amp; Politics">Market News &amp; Politics (79 posts)</option>\n<option value="Analysis &amp; Education">Analysis &amp; Education (65 posts)</option>\n<option value="Community Discussion">Community Discussion (64 posts)</option>\n<option value="Memes &amp; Entertainment">Memes &amp; Entertainment (24 posts)</option>`,
+                'daily': `<option value="">Select a category</option>\n<option value="Personal Trading Stories">Personal Trading Stories (54 posts)</option>\n<option value="Questions &amp; Help">Questions &amp; Help (24 posts)</option>\n<option value="Analysis &amp; Education">Analysis &amp; Education (14 posts)</option>\n<option value="Market News &amp; Politics">Market News &amp; Politics (13 posts)</option>\n<option value="Community Discussion">Community Discussion (12 posts)</option>\n<option value="Memes &amp; Entertainment">Memes &amp; Entertainment (4 posts)</option>`
+            },
+            'entertainment': {
+                'weekly': `<option value="">Select a category</option>\n<option value="Recommendation Requests">Recommendation Requests (236 posts)</option>\n<option value="Reviews &amp; Discussions">Reviews &amp; Discussions (110 posts)</option>\n<option value="News &amp; Announcements">News &amp; Announcements (98 posts)</option>\n<option value="Lists &amp; Rankings">Lists &amp; Rankings (71 posts)</option>\n<option value="Identification &amp; Help">Identification &amp; Help (30 posts)</option>`,
+                'daily': `<option value="">Select a category</option>\n<option value="Recommendation Requests">Recommendation Requests (62 posts)</option>\n<option value="Reviews &amp; Discussions">Reviews &amp; Discussions (44 posts)</option>\n<option value="News &amp; Announcements">News &amp; Announcements (28 posts)</option>\n<option value="Lists &amp; Rankings">Lists &amp; Rankings (11 posts)</option>\n<option value="Identification &amp; Help">Identification &amp; Help (10 posts)</option>`
+            }
+        };
+        
+        // Post data for different combinations (simplified for demo)
+        const postData = {
+            'finance': {
+                'weekly': `
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m7563t/daily_discussion_thread_for_july_23_2025/" target="_blank" rel="noopener">Daily Discussion Thread for July 23, 2025</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">426</td>
+                <td class="comments">20,977</td>
+                <td class="popularity">156226.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m5ew0l/daily_discussion_thread_for_july_21_2025/" target="_blank" rel="noopener">Daily Discussion Thread for July 21, 2025</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">492</td>
+                <td class="comments">22,913</td>
+                <td class="popularity">156078.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m6a1q7/daily_discussion_thread_for_july_22_2025/" target="_blank" rel="noopener">Daily Discussion Thread for July 22, 2025</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">408</td>
+                <td class="comments">18,688</td>
+                <td class="popularity">133106.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m80bvx/daily_discussion_thread_for_july_24_2025/" target="_blank" rel="noopener">Daily Discussion Thread for July 24, 2025</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">401</td>
+                <td class="comments">14,343</td>
+                <td class="popularity">111860.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m6odtj/what_are_your_moves_tomorrow_july_23_2025/" target="_blank" rel="noopener">What Are Your Moves Tomorrow, July 23, 2025</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">532</td>
+                <td class="comments">15,008</td>
+                <td class="popularity">109091.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m7jg8k/what_are_your_moves_tomorrow_july_24_2025/" target="_blank" rel="noopener">What Are Your Moves Tomorrow, July 24, 2025</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">446</td>
+                <td class="comments">11,825</td>
+                <td class="popularity">89931.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m5t74u/what_are_your_moves_tomorrow_july_22_2025/" target="_blank" rel="noopener">What Are Your Moves Tomorrow, July 22, 2025</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">384</td>
+                <td class="comments">10,623</td>
+                <td class="popularity">73847.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m4yfwb/what_are_your_moves_tomorrow_july_21_2025/" target="_blank" rel="noopener">What Are Your Moves Tomorrow, July 21, 2025</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">454</td>
+                <td class="comments">7,115</td>
+                <td class="popularity">47484.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/bojoaergwvef1.jpeg" target="_blank" rel="noopener">Basically</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Memes &amp; Entertainment</td>
+                <td class="score">32,425</td>
+                <td class="comments">538</td>
+                <td class="popularity">34897.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/pennystocks/comments/1m7ude9/the_lounge/" target="_blank" rel="noopener">The Lounge</a></td>
+                <td class="subreddit">r/pennystocks</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">82</td>
+                <td class="comments">3,806</td>
+                <td class="popularity">29324.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/vluladvxtmef1.jpeg" target="_blank" rel="noopener">&quot;Meme Stocks&quot;</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Memes &amp; Entertainment</td>
+                <td class="score">22,470</td>
+                <td class="comments">578</td>
+                <td class="popularity">24077.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/n122gnw2zudf1.jpeg" target="_blank" rel="noopener">This is too real</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Memes &amp; Entertainment</td>
+                <td class="score">25,668</td>
+                <td class="comments">376</td>
+                <td class="popularity">21051.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/pennystocks/comments/1m6zcl0/the_lounge/" target="_blank" rel="noopener">The Lounge</a></td>
+                <td class="subreddit">r/pennystocks</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">60</td>
+                <td class="comments">2,527</td>
+                <td class="popularity">18618.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/stocks/comments/1m6tw5z/breaking_trump_announces_massive_550_billion_deal/" target="_blank" rel="noopener">BREAKING: Trump Announces Massive $550 Billion Deal with Japan</a></td>
+                <td class="subreddit">r/stocks</td>
+                <td class="category">Market News &amp; Politics</td>
+                <td class="score">2,865</td>
+                <td class="comments">1,578</td>
+                <td class="popularity">18110.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/zjg0afkxr8ef1.png" target="_blank" rel="noopener">Just bought more OPEN</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">6,084</td>
+                <td class="comments">1,523</td>
+                <td class="popularity">16000.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/pennystocks/comments/1m8pc7l/the_lounge/" target="_blank" rel="noopener">The Lounge</a></td>
+                <td class="subreddit">r/pennystocks</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">35</td>
+                <td class="comments">1,691</td>
+                <td class="popularity">13630.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/pennystocks/comments/1m5904f/the_lounge/" target="_blank" rel="noopener">The Lounge</a></td>
+                <td class="subreddit">r/pennystocks</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">68</td>
+                <td class="comments">1,863</td>
+                <td class="popularity">12575.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/pennystocks/comments/1m647fj/the_lounge/" target="_blank" rel="noopener">The Lounge</a></td>
+                <td class="subreddit">r/pennystocks</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">68</td>
+                <td class="comments">1,707</td>
+                <td class="popularity">12051.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/gallery/1m8a5ao" target="_blank" rel="noopener">My dad gave me control of his Robinhood account, here are some of his losses..</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">3,280</td>
+                <td class="comments">859</td>
+                <td class="popularity">10208.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/Bitcoin/comments/1m3rmw8/would_you_retire_now_if_you_had_25_btc/" target="_blank" rel="noopener">Would you retire now if you had 25 btc?</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Questions &amp; Help</td>
+                <td class="score">1,126</td>
+                <td class="comments">744</td>
+                <td class="popularity">10165.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/Bitcoin/comments/1m8367k/bitcoin_hit_120k_and_none_of_my_friends_even/" target="_blank" rel="noopener">Bitcoin hit $120K and none of my friends even texted me this time</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">2,129</td>
+                <td class="comments">495</td>
+                <td class="popularity">9945.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/xy93rguf0wef1.gif" target="_blank" rel="noopener">What was really said 💬</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Memes &amp; Entertainment</td>
+                <td class="score">7,635</td>
+                <td class="comments">322</td>
+                <td class="popularity">9626.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m6l36r/dd_the_value_play_cycle_needs_its_third_why_im/" target="_blank" rel="noopener">[DD] The Value Play Cycle Needs Its Third: Why I&#x27;m Betting on DNUT</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Analysis &amp; Education</td>
+                <td class="score">2,653</td>
+                <td class="comments">950</td>
+                <td class="popularity">9396.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/6q4tpw39pmef1.jpeg" target="_blank" rel="noopener">OPEN Exit Liquidity</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">4,213</td>
+                <td class="comments">816</td>
+                <td class="popularity">9272.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/3v3lveeeenef1.jpeg" target="_blank" rel="noopener">Balls Deep in $OPEN. Someone Here Said It’s Gonna Short Squeeze. I Know, I’m Regarded.</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">3,056</td>
+                <td class="comments">815</td>
+                <td class="popularity">9185.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/d6x80a7r0aef1.jpeg" target="_blank" rel="noopener">Oh God...</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">5,149</td>
+                <td class="comments">722</td>
+                <td class="popularity">8674.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/8mtv7k4quudf1.jpeg" target="_blank" rel="noopener">1 full bitcoin (finally)</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">4,910</td>
+                <td class="comments">405</td>
+                <td class="popularity">8110.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/d7o4j8mznaef1.jpeg" target="_blank" rel="noopener">Sold 40 minutes before the drop. Bullet dodged</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">6,336</td>
+                <td class="comments">463</td>
+                <td class="popularity">8090.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/Bitcoin/comments/1m6dsp1/class_of_2014_here_i_want_to_start_1_yearly/" target="_blank" rel="noopener">Class of 2014 here. I want to start 1% yearly withdrawal. Please talk me out of it</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">553</td>
+                <td class="comments">508</td>
+                <td class="popularity">7785.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/7o401s8rjfef1.jpeg" target="_blank" rel="noopener">My biggest gain ever (sold duh)</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">5,201</td>
+                <td class="comments">454</td>
+                <td class="popularity">7345.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/gallery/1m6eqee" target="_blank" rel="noopener">$45 ——-&gt; $15.3k</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">4,566</td>
+                <td class="comments">472</td>
+                <td class="popularity">6921.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/CryptoCurrency/comments/1m6i3oj/what_is_your_biggest_crypto_regret/" target="_blank" rel="noopener">What is your biggest crypto regret?</a></td>
+                <td class="subreddit">r/cryptocurrency</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">203</td>
+                <td class="comments">553</td>
+                <td class="popularity">6814.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/stocks/comments/1m7ac04/does_anyone_know_what_it_means_when_us_and_japan/" target="_blank" rel="noopener">Does anyone know what it means when US and Japan agree to split Japan&#x27;s $550 billion investment, 90% for US and 10% for Japan?</a></td>
+                <td class="subreddit">r/stocks</td>
+                <td class="category">Market News &amp; Politics</td>
+                <td class="score">765</td>
+                <td class="comments">592</td>
+                <td class="popularity">6672.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/9af19md9xoef1.jpeg" target="_blank" rel="noopener">Every day I’m ~40,000 satoshis richer.</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">2,337</td>
+                <td class="comments">327</td>
+                <td class="popularity">6600.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m3jfra/opendoor_this_isnt_just_a_pump/" target="_blank" rel="noopener">OPENDOOR - this isn&#x27;t just a pump.</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">1,703</td>
+                <td class="comments">833</td>
+                <td class="popularity">6484.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m74nu8/408k_800k_yolo_into_iova_and_why_this_is_just_the/" target="_blank" rel="noopener">408K -&gt; 800K YOLO INTO IOVA AND WHY THIS IS JUST THE START</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Analysis &amp; Education</td>
+                <td class="score">1,635</td>
+                <td class="comments">650</td>
+                <td class="popularity">6440.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/Bitcoin/comments/1m6t82q/i_turned_down_a_1500_payment_in_bitcoin_in_2015/" target="_blank" rel="noopener">I turned down a $1,500 payment in Bitcoin in 2015. Today, it would be worth over $..... Never mind</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">1,602</td>
+                <td class="comments">327</td>
+                <td class="popularity">6314.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/stocks/comments/1m8q42q/were_entering_a_system_where_disciplined_savers/" target="_blank" rel="noopener">We&#x27;re entering a system where disciplined savers get left behind</a></td>
+                <td class="subreddit">r/stocks</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">1,328</td>
+                <td class="comments">434</td>
+                <td class="popularity">6082.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/stocks/comments/1m4olxf/which_stocks_will_have_the_most_glorious_drops/" target="_blank" rel="noopener">Which stocks will have the most glorious drops once this bull markets over?</a></td>
+                <td class="subreddit">r/stocks</td>
+                <td class="category">Questions &amp; Help</td>
+                <td class="score">485</td>
+                <td class="comments">597</td>
+                <td class="popularity">5625.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/fnp8hl3gyief1.jpeg" target="_blank" rel="noopener">Tastes like 2021 again. $130k YOLO on $RKT, 99.99% of my account on the line.</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">2,206</td>
+                <td class="comments">475</td>
+                <td class="popularity">5619.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://v.redd.it/lb6d07yo0hef1" target="_blank" rel="noopener">What would you do if your seed phrase was leaked by a police body cam?</a></td>
+                <td class="subreddit">r/cryptocurrency</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">2,187</td>
+                <td class="comments">322</td>
+                <td class="popularity">5357.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/v0c63voyvgef1.jpeg" target="_blank" rel="noopener">For those who missed $KSS and $OPEN… $RKT🚀🚀🚀</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">1,805</td>
+                <td class="comments">474</td>
+                <td class="popularity">5154.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/gallery/1m6ldck" target="_blank" rel="noopener">Got banned permanently without any real answer why for asking a legitimate question</a></td>
+                <td class="subreddit">r/cryptocurrency</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">693</td>
+                <td class="comments">368</td>
+                <td class="popularity">5088.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://cryptobriefing.com/jim-cramer-bitcoin-hedge/" target="_blank" rel="noopener">Jim Cramer says he loads up Bitcoin because America&#x27;s broke</a></td>
+                <td class="subreddit">r/cryptocurrency</td>
+                <td class="category">Market News &amp; Politics</td>
+                <td class="score">1,062</td>
+                <td class="comments">317</td>
+                <td class="popularity">5077.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/yip3y9xo83ef1.jpeg" target="_blank" rel="noopener">CT scan of people who held Bitcoin at $15k in 2022</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">4,321</td>
+                <td class="comments">137</td>
+                <td class="popularity">4992.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.cnbc.com/2025/07/23/tesla-tsla-q2-2025-earnings-report.html" target="_blank" rel="noopener">Tesla Earnings: Double Miss!</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Market News &amp; Politics</td>
+                <td class="score">1,562</td>
+                <td class="comments">445</td>
+                <td class="popularity">4945.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/stocks/comments/1m7ztq5/rstocks_daily_discussion_options_trading_thursday/" target="_blank" rel="noopener">r/Stocks Daily Discussion &amp; Options Trading Thursday - Jul 24, 2025</a></td>
+                <td class="subreddit">r/stocks</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">25</td>
+                <td class="comments">470</td>
+                <td class="popularity">4890.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/bw55426ta9ef1.jpeg" target="_blank" rel="noopener">Okay time to get tf out</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">2,017</td>
+                <td class="comments">440</td>
+                <td class="popularity">4875.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.theverge.com/news/713388/intel-q2-2025-leave-germany-poland-costa-rica" target="_blank" rel="noopener">Intel reveals it will shed 24,000 employees this year and retreat in Germany, Poland, and Costa Rica</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">3,033</td>
+                <td class="comments">267</td>
+                <td class="popularity">4856.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/sl6ds96rfydf1.jpeg" target="_blank" rel="noopener">Sorry Baby</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">3,006</td>
+                <td class="comments">208</td>
+                <td class="popularity">4638.0</td>
+            </tr>
+            `,
+                'daily': `
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m8v66f/daily_discussion_thread_for_july_25_2025/" target="_blank" rel="noopener">Daily Discussion Thread for July 25, 2025</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">302</td>
+                <td class="comments">11,410</td>
+                <td class="popularity">93088.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/pennystocks/comments/1m8pc7l/the_lounge/" target="_blank" rel="noopener">The Lounge</a></td>
+                <td class="subreddit">r/pennystocks</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">38</td>
+                <td class="comments">1,693</td>
+                <td class="popularity">13649.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/CryptoCurrency/comments/1m8kf92/daily_crypto_discussion_july_25_2025_gmt0/" target="_blank" rel="noopener">Daily Crypto Discussion - July 25, 2025 (GMT+0)</a></td>
+                <td class="subreddit">r/cryptocurrency</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">34</td>
+                <td class="comments">773</td>
+                <td class="popularity">10313.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/xy93rguf0wef1.gif" target="_blank" rel="noopener">What was really said 💬</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Memes &amp; Entertainment</td>
+                <td class="score">7,645</td>
+                <td class="comments">322</td>
+                <td class="popularity">9636.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m997eg/weekend_discussion_thread_for_the_weekend_of_july/" target="_blank" rel="noopener">Weekend Discussion Thread for the Weekend of July 25, 2025</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">82</td>
+                <td class="comments">1,103</td>
+                <td class="popularity">9227.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/stocks/comments/1m8q42q/were_entering_a_system_where_disciplined_savers/" target="_blank" rel="noopener">We&#x27;re entering a system where disciplined savers get left behind</a></td>
+                <td class="subreddit">r/stocks</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">1,325</td>
+                <td class="comments">434</td>
+                <td class="popularity">6079.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.theverge.com/news/713388/intel-q2-2025-leave-germany-poland-costa-rica" target="_blank" rel="noopener">Intel reveals it will shed 24,000 employees this year and retreat in Germany, Poland, and Costa Rica</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">3,045</td>
+                <td class="comments">267</td>
+                <td class="popularity">4867.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/pennystocks/comments/1m8h4rf/welcome_ixhl_investors/" target="_blank" rel="noopener">Welcome $IXHL Investors</a></td>
+                <td class="subreddit">r/pennystocks</td>
+                <td class="category">Analysis &amp; Education</td>
+                <td class="score">265</td>
+                <td class="comments">531</td>
+                <td class="popularity">4497.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/jxinoflyeyef1.jpeg" target="_blank" rel="noopener">Buying big OTM TSLA calls since January. Now have to file for bankruptcy.</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">1,304</td>
+                <td class="comments">286</td>
+                <td class="popularity">3704.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/20ipa6onjxef1.jpeg" target="_blank" rel="noopener">AI eating up google&#x27;s search business</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Market News &amp; Politics</td>
+                <td class="score">1,942</td>
+                <td class="comments">248</td>
+                <td class="popularity">3681.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/l0x8kkwid1ff1.jpeg" target="_blank" rel="noopener">Intel what have you done?</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">743</td>
+                <td class="comments">279</td>
+                <td class="popularity">3103.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/stocks/comments/1m8uohx/rstocks_daily_discussion_fundamentals_friday_jul/" target="_blank" rel="noopener">r/Stocks Daily Discussion &amp; Fundamentals Friday Jul 25, 2025</a></td>
+                <td class="subreddit">r/stocks</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">16</td>
+                <td class="comments">276</td>
+                <td class="popularity">3006.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/alefdxna32ff1.png" target="_blank" rel="noopener">Venmo and PayPal users can now send money to the US government to help pay down $36.6 trillion national debt.</a></td>
+                <td class="subreddit">r/cryptocurrency</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">438</td>
+                <td class="comments">173</td>
+                <td class="popularity">2859.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m8jhf4/full_port_qqq_puts_for_tomorrow/" target="_blank" rel="noopener">Full Port QQQ Puts for Tomorrow</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">417</td>
+                <td class="comments">291</td>
+                <td class="popularity">2761.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/9zpprldde1ff1.jpeg" target="_blank" rel="noopener">0.1 milestone!</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">1,238</td>
+                <td class="comments">95</td>
+                <td class="popularity">2648.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.vanityfair.com/news/story/elizabeth-warren-says-trump-is-turning-the-white-house-into-a-crypto-cash-machine" target="_blank" rel="noopener">Elizabeth Warren Says Trump Is Turning the White House Into a “Crypto Cash Machine”</a></td>
+                <td class="subreddit">r/cryptocurrency</td>
+                <td class="category">Market News &amp; Politics</td>
+                <td class="score">971</td>
+                <td class="comments">138</td>
+                <td class="popularity">2602.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/stocks/comments/1m8njaa/how_much_of_your_monthly_income_do_you_actually/" target="_blank" rel="noopener">How much of your monthly income do you actually invest?</a></td>
+                <td class="subreddit">r/stocks</td>
+                <td class="category">Questions &amp; Help</td>
+                <td class="score">113</td>
+                <td class="comments">220</td>
+                <td class="popularity">2471.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/1r69ghonbxef1.jpeg" target="_blank" rel="noopener">I tried hopping over after losing on open. Now Im losing here 😞</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">302</td>
+                <td class="comments">257</td>
+                <td class="popularity">2378.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/gallery/1m8hge6" target="_blank" rel="noopener">Finally broke even 400k &gt; 50k &gt; 500k</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">1,041</td>
+                <td class="comments">191</td>
+                <td class="popularity">2372.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/Bitcoin/comments/1m8t14g/is_it_good_time_to_buy_bitcoin/" target="_blank" rel="noopener">Is it Good time to Buy Bitcoin?</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">36</td>
+                <td class="comments">143</td>
+                <td class="popularity">2353.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/jj477h3yw0ff1.jpeg" target="_blank" rel="noopener">Weekly Earnings Thread 7/28 - 8/1</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Analysis &amp; Education</td>
+                <td class="score">159</td>
+                <td class="comments">249</td>
+                <td class="popularity">2211.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/ValueInvesting/comments/1m8kmge/can_we_refocus_on_undervalued_great_companies/" target="_blank" rel="noopener">Can we refocus on undervalued great companies?</a></td>
+                <td class="subreddit">r/ValueInvesting</td>
+                <td class="category">Questions &amp; Help</td>
+                <td class="score">275</td>
+                <td class="comments">340</td>
+                <td class="popularity">2101.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/gallery/1m947td" target="_blank" rel="noopener">I DNUT expect this</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">681</td>
+                <td class="comments">159</td>
+                <td class="popularity">2056.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/uzuvyxr802ff1.jpeg" target="_blank" rel="noopener">I wish this was true for me</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">1,384</td>
+                <td class="comments">34</td>
+                <td class="popularity">1892.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/Bitcoin/comments/1m9553e/who_else_is_buying_the_dip_today/" target="_blank" rel="noopener">Who else is buying the dip today?</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Questions &amp; Help</td>
+                <td class="score">199</td>
+                <td class="comments">100</td>
+                <td class="popularity">1867.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/personalfinance/comments/1m8gze0/i_dont_have_anything_saved_for_retirement_at_36/" target="_blank" rel="noopener">I don&#x27;t have anything saved for retirement at 36!</a></td>
+                <td class="subreddit">r/personalfinance</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">489</td>
+                <td class="comments">252</td>
+                <td class="popularity">1584.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/investing/comments/1m984dz/just_found_out_i_have_39k_in_the_market/" target="_blank" rel="noopener">Just found out I have $39k in the market</a></td>
+                <td class="subreddit">r/investing</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">318</td>
+                <td class="comments">184</td>
+                <td class="popularity">1568.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/Bitcoin/comments/1m8o1la/bitcoinusd_took_20_in_6_months_while_bitcoineur/" target="_blank" rel="noopener">Bitcoin/USD took 20% in 6 months while Bitcoin/EUR took 8%</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Questions &amp; Help</td>
+                <td class="score">327</td>
+                <td class="comments">72</td>
+                <td class="popularity">1504.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/Bitcoin/comments/1m8rfri/daily_discussion_july_25_2025/" target="_blank" rel="noopener">Daily Discussion, July 25, 2025</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">37</td>
+                <td class="comments">90</td>
+                <td class="popularity">1492.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/thetagang/comments/1m8o5rl/daily_rthetagang_discussion_thread_what_are_your/" target="_blank" rel="noopener">Daily r/thetagang Discussion Thread - What are your moves for today?</a></td>
+                <td class="subreddit">r/thetagang</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">15</td>
+                <td class="comments">229</td>
+                <td class="popularity">1485.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/personalfinance/comments/1m983vj/got_a_recycled_phone_number_ended_up_fighting_off/" target="_blank" rel="noopener">Got a recycled phone number, ended up fighting off five years of nonstop debt collector harassment for someone I’ve never met</a></td>
+                <td class="subreddit">r/personalfinance</td>
+                <td class="category">Questions &amp; Help</td>
+                <td class="score">504</td>
+                <td class="comments">192</td>
+                <td class="popularity">1403.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://v.redd.it/sddy0sjhq2ff1" target="_blank" rel="noopener">Calming down my bro who jumped in at $122K for a quick flip</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">758</td>
+                <td class="comments">40</td>
+                <td class="popularity">1363.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/jqru9elp3yef1.jpeg" target="_blank" rel="noopener">Do you see what’s happening? HODL</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Questions &amp; Help</td>
+                <td class="score">249</td>
+                <td class="comments">67</td>
+                <td class="popularity">1344.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/investing/comments/1m93ike/someone_please_explain_tsla_rebounding_like_it_is/" target="_blank" rel="noopener">Someone please explain $TSLA rebounding like it is</a></td>
+                <td class="subreddit">r/investing</td>
+                <td class="category">Analysis &amp; Education</td>
+                <td class="score">100</td>
+                <td class="comments">186</td>
+                <td class="popularity">1333.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m8l6ps/amd_857k_yolo/" target="_blank" rel="noopener">AMD $857K YOLO</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">364</td>
+                <td class="comments">112</td>
+                <td class="popularity">1282.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/Bitcoin/comments/1m8hjh7/its_only_118k/" target="_blank" rel="noopener">It&#x27;s only 118k....</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">281</td>
+                <td class="comments">60</td>
+                <td class="popularity">1251.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://share.google/pV2P90jIpDGK2phjw" target="_blank" rel="noopener">Lawyer kicked out of bank for BTC transaction</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">204</td>
+                <td class="comments">63</td>
+                <td class="popularity">1240.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/stocks/comments/1m8ige9/anyone_else_concerned_about_lucid_stock/" target="_blank" rel="noopener">Anyone else concerned about LUCID Stock?</a></td>
+                <td class="subreddit">r/stocks</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">67</td>
+                <td class="comments">108</td>
+                <td class="popularity">1216.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/financialindependence/comments/1m8u8nc/daily_fi_discussion_thread_friday_july_25_2025/" target="_blank" rel="noopener">Daily FI discussion thread - Friday, July 25, 2025</a></td>
+                <td class="subreddit">r/financialindependence</td>
+                <td class="category">Analysis &amp; Education</td>
+                <td class="score">31</td>
+                <td class="comments">267</td>
+                <td class="popularity">1189.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/Bitcoin/comments/1m8gnmf/bitcoin_gives_me_hope/" target="_blank" rel="noopener">Bitcoin gives me hope</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Analysis &amp; Education</td>
+                <td class="score">237</td>
+                <td class="comments">57</td>
+                <td class="popularity">1155.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/9s1vuihmc0ff1.jpeg" target="_blank" rel="noopener">AMPX DD - Batteries that will (literally) take us to the moon</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Analysis &amp; Education</td>
+                <td class="score">226</td>
+                <td class="comments">108</td>
+                <td class="popularity">1126.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/gallery/1m9ajhj" target="_blank" rel="noopener">I made a $1.5 million dollar bet on Energy Fuels (UUUU)</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">384</td>
+                <td class="comments">83</td>
+                <td class="popularity">1113.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/stocks/comments/1m8z4c5/how_do_high_earners_invest/" target="_blank" rel="noopener">How do high earners invest</a></td>
+                <td class="subreddit">r/stocks</td>
+                <td class="category">Questions &amp; Help</td>
+                <td class="score">0</td>
+                <td class="comments">101</td>
+                <td class="popularity">1101.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/6qlj8q8fwwef1.jpeg" target="_blank" rel="noopener">I prefer to think of myself as a satoshi millionaire rather than a 1% coiner</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">388</td>
+                <td class="comments">47</td>
+                <td class="popularity">1053.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/r1alej9jj2ff1.jpeg" target="_blank" rel="noopener">$116K Bitcoin Today vs. 2 Weeks ago</a></td>
+                <td class="subreddit">r/Bitcoin</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">654</td>
+                <td class="comments">26</td>
+                <td class="popularity">1046.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/wallstreetbets/comments/1m8lrly/googl_yolo_the_dip_to_191_was_a_gift_from_the/" target="_blank" rel="noopener">$GOOGL YOLO - The Dip to $191 was a Gift from the Volatility Gods</a></td>
+                <td class="subreddit">r/wallstreetbets</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">268</td>
+                <td class="comments">94</td>
+                <td class="popularity">1037.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/personalfinance/comments/1m903bd/is_it_financially_smart_to_buy_my_childhood_home/" target="_blank" rel="noopener">Is it financially smart to buy my childhood home?</a></td>
+                <td class="subreddit">r/personalfinance</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">192</td>
+                <td class="comments">189</td>
+                <td class="popularity">1035.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://financefeeds.com/pump-fun-sued-over-5-5b-memecoin-scheme-faces-rico-and-fraud-claims/" target="_blank" rel="noopener">Pumpfun sued for $5.5B over claims it ran a memecoin casino disguised as a platform.</a></td>
+                <td class="subreddit">r/cryptocurrency</td>
+                <td class="category">Market News &amp; Politics</td>
+                <td class="score">316</td>
+                <td class="comments">57</td>
+                <td class="popularity">1020.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://finbold.com/xrp-wipes-out-massive-20-billion-in-a-day-after-bizarre-sec-etf-decision/" target="_blank" rel="noopener">XRP wipes out massive $20 billion in a day after bizarre SEC ETF decision</a></td>
+                <td class="subreddit">r/cryptocurrency</td>
+                <td class="category">Personal Trading Stories</td>
+                <td class="score">383</td>
+                <td class="comments">52</td>
+                <td class="popularity">993.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/stocks/comments/1m986cm/people_who_lived_a_normal_life_as_middlelow_class/" target="_blank" rel="noopener">People who lived a normal life as middle/low class person then got wealthy through stocks, what&#x27;s your story?</a></td>
+                <td class="subreddit">r/stocks</td>
+                <td class="category">Community Discussion</td>
+                <td class="score">0</td>
+                <td class="comments">90</td>
+                <td class="popularity">992.8</td>
+            </tr>
+            `
+            },
+            'entertainment': {
+                'weekly': `
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m585th/have_you_ever_paid_to_see_a_movie_twice_in_a/" target="_blank" rel="noopener">Have you ever paid to see a movie twice in a theater?</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">4,938</td>
+                <td class="comments">7,275</td>
+                <td class="popularity">62978.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/nolqu3mjffef1.jpeg" target="_blank" rel="noopener">Hi, I&#x27;m Ari Aster. Writer/director of Hereditary, Midsommar, Beau Is Afraid, and Eddington. AMA!</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">15,087</td>
+                <td class="comments">3,244</td>
+                <td class="popularity">42194.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.hollywoodreporter.com/tv/tv-news/south-park-trey-parker-matt-stone-trump-comic-con-1236328836/" target="_blank" rel="noopener">‘South Park’ Creators Reveal Network Battle Over Premiere’s Trump Penis as They Joke: “We’re Terribly Sorry”</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">19,844</td>
+                <td class="comments">781</td>
+                <td class="popularity">26051.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/mh6p8uizlaef1.jpeg" target="_blank" rel="noopener">Official Poster for &#x27;Avatar: Fire and Ash&#x27;</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">14,689</td>
+                <td class="comments">1,758</td>
+                <td class="popularity">25156.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m8n0ic/official_discussion_the_fantastic_four_first/" target="_blank" rel="noopener">Official Discussion - The Fantastic Four: First Steps [SPOILERS]</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">1,181</td>
+                <td class="comments">2,217</td>
+                <td class="popularity">22566.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m4vyob/the_quickest_you_realized_you_were_watching_a_bad/" target="_blank" rel="noopener">The quickest you realized you were watching a bad movie</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">2,068</td>
+                <td class="comments">2,502</td>
+                <td class="popularity">21626.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m6898i/have_you_ever_been_shocked_to_find_out_that_an/" target="_blank" rel="noopener">&quot;Have you ever been shocked to find out that an actor you thought was American is actually British because they nailed the accent?&quot;</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">2,177</td>
+                <td class="comments">2,067</td>
+                <td class="popularity">19606.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.hollywoodreporter.com/movies/movie-news/spider-man-beyond-the-spider-verse-release-1236320001/" target="_blank" rel="noopener">&#x27;Spider-Man: Beyond the Spider-Verse&#x27; Delayed to June 25, 2027</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">15,069</td>
+                <td class="comments">1,287</td>
+                <td class="popularity">18948.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.tmz.com/2025/07/21/malcolm-jamal-warner-dead-cosby-show/" target="_blank" rel="noopener">&#x27;The Cosby Show&#x27; Star Malcolm-Jamal Warner Dead At 54 From Accidental Drowning</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">11,612</td>
+                <td class="comments">1,102</td>
+                <td class="popularity">17604.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m3k5cz/what_was_in_your_opinion_the_dumbest_casting/" target="_blank" rel="noopener">What was, in your opinion, the dumbest casting choice ever made?</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">2,846</td>
+                <td class="comments">1,937</td>
+                <td class="popularity">16557.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://ecency.com/actor/@blaffy/voice-actors-demand-regulation-on-ai-voice-cloning" target="_blank" rel="noopener">Voice actors demand regulation on AI voice cloning</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">10,216</td>
+                <td class="comments">720</td>
+                <td class="popularity">12363.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.youtube.com/watch?v=Afetnw70S04" target="_blank" rel="noopener">South Park &quot;Pro-Trump&quot; Message #1 of 50</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">8,292</td>
+                <td class="comments">480</td>
+                <td class="popularity">11989.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/xoh2bpgyj8ef1.jpeg" target="_blank" rel="noopener">First image of Anna Hathaway as Andy Sachs in &#x27;The Devil Wears Prada 2&#x27;</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">8,702</td>
+                <td class="comments">573</td>
+                <td class="popularity">11263.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m41ksx/worst_movie_you_ever_loved/" target="_blank" rel="noopener">Worst Movie You Ever Loved</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">467</td>
+                <td class="comments">1,385</td>
+                <td class="popularity">10863.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m6ujje/it_was_always_there_trope/" target="_blank" rel="noopener">“It was always there” trope</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">2,310</td>
+                <td class="comments">975</td>
+                <td class="popularity">10776.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m5fjw5/which_disaster_movie_had_the_best_depiction_of/" target="_blank" rel="noopener">Which disaster movie had the best depiction of societal collapse?</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">1,611</td>
+                <td class="comments">1,113</td>
+                <td class="popularity">10543.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.tmz.com/2025/07/22/ozzy-osbourne-dead/" target="_blank" rel="noopener">Ozzy Osbourne Star Of Black Sabbath &amp; The Early 2000&#x27;s hit reality show &#x27;The Osbournes&#x27; Dead AT 76</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">8,777</td>
+                <td class="comments">323</td>
+                <td class="popularity">10072.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/television/comments/1m4w0cm/the_years_long_wait_between_seasons_has_killed_my/" target="_blank" rel="noopener">The years long wait between seasons has killed my love for shows. I have no interest in watching anything new.</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">2,982</td>
+                <td class="comments">899</td>
+                <td class="popularity">9740.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://ew.com/harrison-ford-gives-emotional-speech-last-day-shrinking-season-3-filming-11777301" target="_blank" rel="noopener">Harrison Ford gives emotional speech to the cast and crew on last day of &#x27;Shrinking&#x27; season 3 filming: &quot;Just f*cking amazing. I hope we can all get back here and do it again.&quot;</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">7,883</td>
+                <td class="comments">208</td>
+                <td class="popularity">8788.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/uul1anexwfef1.jpeg" target="_blank" rel="noopener">New Image at Benny Safdie’s ‘The Smashing Machine’ starring Dwayne Johnson and Emily Blunt. It will have its world premiere at the 82nd Venice International Film Festival this Fall.</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">2,659</td>
+                <td class="comments">717</td>
+                <td class="popularity">8708.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/dp210eng19ef1.jpeg" target="_blank" rel="noopener">What movie is this for you?</a></td>
+                <td class="subreddit">r/letterboxd</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">2,548</td>
+                <td class="comments">754</td>
+                <td class="popularity">8545.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/television/comments/1m53ktj/whats_the_best_running_gag_on_a_tv_show_that/" target="_blank" rel="noopener">What&#x27;s the best running gag on a TV show that wasn&#x27;t really party of the plot.</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">880</td>
+                <td class="comments">955</td>
+                <td class="popularity">8416.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/1vyr8ka5i8ef1.jpeg" target="_blank" rel="noopener">First Image of Sydney Sweeney as Christy Martin in &#x27;Christy&#x27;</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">4,699</td>
+                <td class="comments">625</td>
+                <td class="popularity">8387.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.cracked.com/article_47426_my-dad-would-have-never-quit-that-show-isaac-hayes-iii-on-what-south-park-meant-to-his-father.html" target="_blank" rel="noopener">My Dad Would Have Never Quit That Show’: Isaac Hayes III on what ‘South Park’ Meant to His Father; “At the time, everybody around my father was involved in Scientology — his assistants, the core group of people. So someone quit &#x27;South Park&#x27; on Isaac Hayes’ behalf. We don’t know who.”</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">8,239</td>
+                <td class="comments">314</td>
+                <td class="popularity">8142.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m93tvh/happy_gilmore_2_review_thread/" target="_blank" rel="noopener">&#x27;Happy Gilmore 2&#x27; - Review Thread</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">1,303</td>
+                <td class="comments">672</td>
+                <td class="popularity">8066.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.indiewire.com/news/general-news/francis-ford-coppola-megalopolis-recut-weird-1235140452/" target="_blank" rel="noopener">Francis Ford Coppola Says That &#x27;Megalopolis&#x27; Will Get a Weird Recut</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">4,075</td>
+                <td class="comments">538</td>
+                <td class="popularity">8002.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m4dnrm/what_movies_suffered_because_they_were_released/" target="_blank" rel="noopener">What movies suffered because they were released the same year as juggernauts</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">1,594</td>
+                <td class="comments">858</td>
+                <td class="popularity">7957.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/television/comments/1m3zqlk/what_is_the_single_best_episode_in_a_comedy_series/" target="_blank" rel="noopener">What is the single best episode in a comedy series?</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">884</td>
+                <td class="comments">905</td>
+                <td class="popularity">7566.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m4xr78/most_egregious_case_of_for_the_audience_only/" target="_blank" rel="noopener">Most Egregious Case of &quot;For the Audience Only&quot;</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">2,143</td>
+                <td class="comments">708</td>
+                <td class="popularity">7506.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m46zkj/what_is_the_most_obvious_remind_the_audience_that/" target="_blank" rel="noopener">What is the most obvious &quot;remind the audience that they are in (insert country)&quot; in a movie?</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">1,752</td>
+                <td class="comments">692</td>
+                <td class="popularity">6750.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/8hpjnr4hwtef1.jpeg" target="_blank" rel="noopener">First Image of Bob Odenkirk in &#x27;Normal&#x27; - Ulysses comes to the sleepy town of Normal to serve as the temporary sheriff after the passing of the original sheriff. A bank robbery in Normal leads Ulysses to find that a criminal underground reaches throughout the entire town.</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">4,458</td>
+                <td class="comments">282</td>
+                <td class="popularity">6603.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://youtu.be/VIZegLAvK8o?si=mdymBJ5MJD9FHQuu" target="_blank" rel="noopener">The Gloves Are Off | &quot;I Absolutely Love That Colbert Got Fired&quot; | Trump &amp; Epstein&#x27;s Wonderful Secret | The Late Show with Stephen Colbert</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">2,862</td>
+                <td class="comments">535</td>
+                <td class="popularity">6555.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/gallery/1m4p4w8" target="_blank" rel="noopener">What is the defining film of the Biden era?</a></td>
+                <td class="subreddit">r/letterboxd</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">2,974</td>
+                <td class="comments">561</td>
+                <td class="popularity">6194.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/horror/comments/1m70a4l/need_some_horror_movie_suggestions_for_my_7_year/" target="_blank" rel="noopener">Need some horror movie suggestions for my 7 year old. He is really wanting something really scary, and we are down to step it up for him. But we want to give him what he’s asking for without it being some slasher gore or overly violent disturbing movie.</a></td>
+                <td class="subreddit">r/horror</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">176</td>
+                <td class="comments">816</td>
+                <td class="popularity">6175.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/gallery/1m4jtg3" target="_blank" rel="noopener">What films have this vibe?</a></td>
+                <td class="subreddit">r/letterboxd</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">2,413</td>
+                <td class="comments">522</td>
+                <td class="popularity">6142.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/television/comments/1m7ss2s/south_park_season_27_premiere_discussion/" target="_blank" rel="noopener">South Park - Season 27 Premiere Discussion</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">1,192</td>
+                <td class="comments">534</td>
+                <td class="popularity">6128.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/flicks/comments/1m6ql7p/what_movie_do_you_feel_has_the_tightest_script/" target="_blank" rel="noopener">What movie do you feel has the &quot;tightest&quot; script?</a></td>
+                <td class="subreddit">r/flicks</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">324</td>
+                <td class="comments">757</td>
+                <td class="popularity">5804.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/1cdwahjjleef1.png" target="_blank" rel="noopener">First Image of Oscar Issac in Julian Schnabel&#x27;s &#x27;IN THE HAND OF DANTE&#x27;</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">4,661</td>
+                <td class="comments">232</td>
+                <td class="popularity">5722.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m3pxyy/what_trailer_is_significantly_better_than_the/" target="_blank" rel="noopener">What trailer is significantly better than the actual movie?</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">593</td>
+                <td class="comments">705</td>
+                <td class="popularity">5721.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/gallery/1m3wjmn" target="_blank" rel="noopener">What is the defining film of the Trump era?</a></td>
+                <td class="subreddit">r/letterboxd</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">1,752</td>
+                <td class="comments">500</td>
+                <td class="popularity">5217.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.youtube.com/watch?v=TwOLo_U6bTw" target="_blank" rel="noopener">Jon Stewart Reacts to Colbert&#x27;s Cancellation &amp; Trump&#x27;s &quot;Bawdy&quot; Epstein Doodles | The Daily Show</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">3,786</td>
+                <td class="comments">273</td>
+                <td class="popularity">5210.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.ign.com/articles/as-doctor-whos-future-remains-in-the-balance-writer-and-actor-mark-gatiss-says-it-may-be-time-for-the-show-to-rest" target="_blank" rel="noopener">As &#x27;Doctor Who&#x27;s Future Remains in the Balance, Writer and Actor Mark Gatiss Says It May Be Time for the Show to &#x27;Rest&#x27;; &quot;It&#x27;s been back for 20 years, which is an awfully long time.&quot;</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">2,316</td>
+                <td class="comments">385</td>
+                <td class="popularity">5189.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/television/comments/1m482yg/god_i_had_no_idea_the_it_crowd_was_so_funny/" target="_blank" rel="noopener">God, I had no idea the IT Crowd was so funny</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">Identification &amp; Help</td>
+                <td class="score">1,480</td>
+                <td class="comments">506</td>
+                <td class="popularity">5111.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/netflix/comments/1m5dw1j/a_netflix_original_that_completely_exceeded_your/" target="_blank" rel="noopener">A Netflix original that completely exceeded your expectations?</a></td>
+                <td class="subreddit">r/netflix</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">788</td>
+                <td class="comments">710</td>
+                <td class="popularity">4562.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.whats-on-netflix.com/news/guillermo-del-toros-netflix-frankenstein-movie-everything-we-know-07-2025/" target="_blank" rel="noopener">Guillermo Del Toro&#x27;s &#x27;Frankenstein&#x27; has a runtime of 2 hours and 29 minutes.</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">3,720</td>
+                <td class="comments">183</td>
+                <td class="popularity">4368.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/TIFF/comments/1m88gbc/guillermo_del_toro_receives_key_to_the_city_in/" target="_blank" rel="noopener">Mexican Filmmaker Guillermo Del Toro (&#x27;Pan&#x27;s Labyrinth&#x27;, &#x27;The Shape of Water&#x27;, &#x27;Hellboy&#x27;) Receives Key to the City of Toronto</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">3,763</td>
+                <td class="comments">76</td>
+                <td class="popularity">4284.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/television/comments/1m466ky/what_tv_show_deviated_the_most_from_its_pilot/" target="_blank" rel="noopener">What tv show deviated the most from its pilot episode?</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">244</td>
+                <td class="comments">510</td>
+                <td class="popularity">4084.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m4pcut/time_travel_movies_using_the_fixed_stream_formula/" target="_blank" rel="noopener">Time Travel Movies using the &quot;Fixed Stream&quot; Formula</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">466</td>
+                <td class="comments">466</td>
+                <td class="popularity">4065.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.thewrap.com/wonder-woman-movie-writer-ana-nogueira-supergirl-dc-studios/" target="_blank" rel="noopener">&#x27;Wonder Woman&#x27; Taps &#x27;Supergirl&#x27; Writer Ana Nogueira for DC Studios Film</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">1,513</td>
+                <td class="comments">306</td>
+                <td class="popularity">3917.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/horror/comments/1m5zmob/what_are_your_honest_opinions_on_rob_zombie/" target="_blank" rel="noopener">What are your HONEST opinions on rob zombie?</a></td>
+                <td class="subreddit">r/horror</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">164</td>
+                <td class="comments">538</td>
+                <td class="popularity">3904.8</td>
+            </tr>
+            `,
+                'daily': `
+            <tr>
+                <td class="post-title"><a href="https://www.hollywoodreporter.com/tv/tv-news/south-park-trey-parker-matt-stone-trump-comic-con-1236328836/" target="_blank" rel="noopener">‘South Park’ Creators Reveal Network Battle Over Premiere’s Trump Penis as They Joke: “We’re Terribly Sorry”</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">19,848</td>
+                <td class="comments">781</td>
+                <td class="popularity">26054.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m8n0ic/official_discussion_the_fantastic_four_first/" target="_blank" rel="noopener">Official Discussion - The Fantastic Four: First Steps [SPOILERS]</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">1,173</td>
+                <td class="comments">2,217</td>
+                <td class="popularity">22557.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m93tvh/happy_gilmore_2_review_thread/" target="_blank" rel="noopener">&#x27;Happy Gilmore 2&#x27; - Review Thread</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">1,300</td>
+                <td class="comments">672</td>
+                <td class="popularity">8062.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/TIFF/comments/1m88gbc/guillermo_del_toro_receives_key_to_the_city_in/" target="_blank" rel="noopener">Mexican Filmmaker Guillermo Del Toro (&#x27;Pan&#x27;s Labyrinth&#x27;, &#x27;The Shape of Water&#x27;, &#x27;Hellboy&#x27;) Receives Key to the City of Toronto</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">3,763</td>
+                <td class="comments">76</td>
+                <td class="popularity">4284.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/horror/comments/1m8mog7/i_lived_in_the_texas_chainsaw_massacre_house/" target="_blank" rel="noopener">I lived in the Texas Chainsaw Massacre house</a></td>
+                <td class="subreddit">r/horror</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">2,544</td>
+                <td class="comments">138</td>
+                <td class="popularity">3461.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/anime/comments/1m8kesy/casual_discussion_fridays_week_of_july_25_2025/" target="_blank" rel="noopener">Casual Discussion Fridays - Week of July 25, 2025</a></td>
+                <td class="subreddit">r/anime</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">27</td>
+                <td class="comments">641</td>
+                <td class="popularity">3437.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/hxoh59bmzxef1.jpeg" target="_blank" rel="noopener">Hi r/movies! I&#x27;m Dot-Marie Jones. You might know me from things like Glee, Weird: The Al Yankovic Story, Boondock Saints, Bros, and Lizzie McGuire. I&#x27;m starring in Don’t Tell Larry, a dark-office-comedy that&#x27;s now streaming on Amazon Prime Video and Apple TV! Ask me anything!</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Identification &amp; Help</td>
+                <td class="score">1,546</td>
+                <td class="comments">169</td>
+                <td class="popularity">3039.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/horror/comments/1m8gi5u/what_was_the_movie_that_made_you_realize_you_like/" target="_blank" rel="noopener">What was the movie that made you realize you like horror?</a></td>
+                <td class="subreddit">r/horror</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">171</td>
+                <td class="comments">334</td>
+                <td class="popularity">2831.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/horror/comments/1m8yxni/whats_the_worst_horror_movie_you_watched/" target="_blank" rel="noopener">What&#x27;s the Worst Horror Movie You Watched?</a></td>
+                <td class="subreddit">r/horror</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">108</td>
+                <td class="comments">327</td>
+                <td class="popularity">2792.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/bj906ubko1ff1.jpeg" target="_blank" rel="noopener">Movies you’re kinda afraid to admit you don’t love as much as others (but wish you did)</a></td>
+                <td class="subreddit">r/letterboxd</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">122</td>
+                <td class="comments">245</td>
+                <td class="popularity">2552.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/srupzld4k1ff1.jpeg" target="_blank" rel="noopener">New Poster for &#x27;Together&#x27;</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">668</td>
+                <td class="comments">180</td>
+                <td class="popularity">2507.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/5j8h0w9le1ff1.png" target="_blank" rel="noopener">&#x27;Whiplash&#x27; voted the best movie of 2014. What is the best movie of 2013?</a></td>
+                <td class="subreddit">r/letterboxd</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">321</td>
+                <td class="comments">215</td>
+                <td class="popularity">2469.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/television/comments/1m8pva4/what_tv_show_got_so_depressing_that_you_turned_it/" target="_blank" rel="noopener">What TV show got so depressing that you turned it off?</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">30</td>
+                <td class="comments">245</td>
+                <td class="popularity">2397.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m92xez/what_movie_gave_you_the_most_existential_dread/" target="_blank" rel="noopener">What movie gave you the most existential dread, and why?</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">119</td>
+                <td class="comments">220</td>
+                <td class="popularity">2300.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/MovieSuggestions/comments/1m93ii5/suggest_me_a_movie_about_revenge/" target="_blank" rel="noopener">Suggest me a movie about revenge</a></td>
+                <td class="subreddit">r/MovieSuggestions</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">79</td>
+                <td class="comments">379</td>
+                <td class="popularity">1749.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/horror/comments/1m8kenu/best_horror_movies_about_cults/" target="_blank" rel="noopener">Best horror movies about cults?</a></td>
+                <td class="subreddit">r/horror</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">63</td>
+                <td class="comments">210</td>
+                <td class="popularity">1742.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/MovieSuggestions/comments/1m8l8k0/could_you_suggest_lesser_known_movies_with_a/" target="_blank" rel="noopener">Could you suggest lesser known movies with a twist you didn&#x27;t see coming?</a></td>
+                <td class="subreddit">r/MovieSuggestions</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">37</td>
+                <td class="comments">311</td>
+                <td class="popularity">1364.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/television/comments/1m91opl/any_shows_worth_watching_that_were_cancelled_and/" target="_blank" rel="noopener">Any shows worth watching that we&#x27;re cancelled and have no definitive ending?</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">0</td>
+                <td class="comments">135</td>
+                <td class="popularity">1329.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/MovieSuggestions/comments/1m8g9kx/movies_where_the_protagonist_is_an_alcoholic/" target="_blank" rel="noopener">Movies where the protagonist is an alcoholic?</a></td>
+                <td class="subreddit">r/MovieSuggestions</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">53</td>
+                <td class="comments">254</td>
+                <td class="popularity">1130.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://youtu.be/cR41iZx07O8" target="_blank" rel="noopener">Teaser for new Vince Gilligan Apple TV+ series ‘Pluribus’—Starring Rhea Seehorn | Premieres Nov 7th</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">282</td>
+                <td class="comments">82</td>
+                <td class="popularity">1119.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/3itd9czo0wef1.jpeg" target="_blank" rel="noopener">What is your favourite movie score?</a></td>
+                <td class="subreddit">r/letterboxd</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">153</td>
+                <td class="comments">95</td>
+                <td class="popularity">1066.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/3ola6sey13ff1.png" target="_blank" rel="noopener">It&#x27;s My Birthday pls Recommend me a very sad movie so that I can cry</a></td>
+                <td class="subreddit">r/letterboxd</td>
+                <td class="category">Identification &amp; Help</td>
+                <td class="score">117</td>
+                <td class="comments">89</td>
+                <td class="popularity">1015.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/MovieSuggestions/comments/1m8ph33/best_small_town_america_movie/" target="_blank" rel="noopener">Best small town America movie.</a></td>
+                <td class="subreddit">r/MovieSuggestions</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">84</td>
+                <td class="comments">213</td>
+                <td class="popularity">1003.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/MovieSuggestions/comments/1m8zkjl/revenge_itch_i_need_scratched/" target="_blank" rel="noopener">Revenge itch I need scratched</a></td>
+                <td class="subreddit">r/MovieSuggestions</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">39</td>
+                <td class="comments">203</td>
+                <td class="popularity">929.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/s8ufp82tb2ff1.jpeg" target="_blank" rel="noopener">Ice Cube War of The Worlds film</a></td>
+                <td class="subreddit">r/letterboxd</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">123</td>
+                <td class="comments">80</td>
+                <td class="popularity">928.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/criterion/comments/1m8ou23/so_i_watched_sorcerer/" target="_blank" rel="noopener">So I watched Sorcerer…</a></td>
+                <td class="subreddit">r/criterion</td>
+                <td class="category">Lists &amp; Rankings</td>
+                <td class="score">314</td>
+                <td class="comments">58</td>
+                <td class="popularity">868.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/horror/comments/1m8gxj8/what_are_your_favorite_horror_soundtracks/" target="_blank" rel="noopener">what are your favorite horror soundtracks?</a></td>
+                <td class="subreddit">r/horror</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">31</td>
+                <td class="comments">104</td>
+                <td class="popularity">858.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/s8w24jxvvzef1.jpeg" target="_blank" rel="noopener">&quot;I Was Reincarnated as a Dragon&#x27;s Egg&quot; First key visual</a></td>
+                <td class="subreddit">r/anime</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">265</td>
+                <td class="comments">100</td>
+                <td class="popularity">829.4</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/anime/comments/1m8v5zv/anime_questions_recommendations_and_discussion/" target="_blank" rel="noopener">Anime Questions, Recommendations, and Discussion - July 25, 2025</a></td>
+                <td class="subreddit">r/anime</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">13</td>
+                <td class="comments">133</td>
+                <td class="popularity">734.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://mainichi.jp/english/articles/20250722/p2g/00m/0et/026000c" target="_blank" rel="noopener">&#x27;Demon Slayer&#x27; film sets Japan opening 3-day box-office record</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">395</td>
+                <td class="comments">41</td>
+                <td class="popularity">732.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/MovieSuggestions/comments/1m97bwo/a_movie_where_someones_reality_isnt_what_they/" target="_blank" rel="noopener">A Movie Where Someone&#x27;s Reality Isn&#x27;t What They Thought It Was?</a></td>
+                <td class="subreddit">r/MovieSuggestions</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">34</td>
+                <td class="comments">149</td>
+                <td class="popularity">694.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/flicks/comments/1m96mtp/what_makes_it_an_old_movie/" target="_blank" rel="noopener">What makes it an “old” movie</a></td>
+                <td class="subreddit">r/flicks</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">13</td>
+                <td class="comments">80</td>
+                <td class="popularity">674.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://variety.com/2025/tv/news/pluribus-vince-gilligan-new-show-release-date-first-look-1236468199/" target="_blank" rel="noopener">‘Pluribus’ First Look: Vince Gilligan Goes Sci-Fi After ‘Breaking Bad’ and ‘Better Call Saul’ as Apple TV+ Sets Fall Release.</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">306</td>
+                <td class="comments">40</td>
+                <td class="popularity">667.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m8gkav/what_life_changing_movies_should_i_watch_in_the/" target="_blank" rel="noopener">what life changing movies should I watch in the run up to my 20th birthday</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">0</td>
+                <td class="comments">69</td>
+                <td class="popularity">657.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/3ke5f6slg1ff1.jpeg" target="_blank" rel="noopener">The Top 10 Scariest Movies I Have Ever Seen</a></td>
+                <td class="subreddit">r/horrormovies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">58</td>
+                <td class="comments">69</td>
+                <td class="popularity">630.3</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/horror/comments/1m97qas/movie_night/" target="_blank" rel="noopener">Movie Night</a></td>
+                <td class="subreddit">r/horror</td>
+                <td class="category">Recommendation Requests</td>
+                <td class="score">7</td>
+                <td class="comments">75</td>
+                <td class="popularity">627.9</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/TrueFilm/comments/1m8uibx/i_kind_of_felt_betrayed_by_sinners_2025_and_am/" target="_blank" rel="noopener">I kind of felt betrayed by Sinners (2025) and am rather confused about the stellar ratings</a></td>
+                <td class="subreddit">r/truefilm</td>
+                <td class="category">Lists &amp; Rankings</td>
+                <td class="score">0</td>
+                <td class="comments">58</td>
+                <td class="popularity">627.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/gallery/1m8t5gn" target="_blank" rel="noopener">What&#x27;s your honest opinion on the Fast and Furious</a></td>
+                <td class="subreddit">r/letterboxd</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">3</td>
+                <td class="comments">64</td>
+                <td class="popularity">625.0</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m99x9a/great_movies_with_stupidly_descriptive_titles/" target="_blank" rel="noopener">Great movies with stupidly descriptive titles like Kung fu panda or KPop demon hunters?</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">0</td>
+                <td class="comments">58</td>
+                <td class="popularity">577.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m8rmjh/whats_your_favorite_horror_movie/" target="_blank" rel="noopener">What’s your favorite horror movie?</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">1</td>
+                <td class="comments">59</td>
+                <td class="popularity">572.5</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.ign.com/articles/invincible-season-4s-dinosaurus-has-a-voice-actor-robert-kirkman-says-7-9-seasons-needed-to-do-the-complete-comic-arc-jokes-season-5-will-be-out-in-2032-sdcc-2025" target="_blank" rel="noopener">Robert Kirkman Says 7-9 Seasons Needed to Do the Complete &#x27;Invincible&#x27; Comic Arc, Jokes Season 5 Will Be Out in 2032</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">296</td>
+                <td class="comments">30</td>
+                <td class="popularity">544.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m8qc43/what_movie_comes_to_mind_when_you_hear_the_word/" target="_blank" rel="noopener">What movie comes to mind when you hear the word &#x27;mediocre?&#x27;</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Identification &amp; Help</td>
+                <td class="score">0</td>
+                <td class="comments">51</td>
+                <td class="popularity">492.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m8n0ne/official_throwback_discussion_what_lies_beneath/" target="_blank" rel="noopener">Official Throwback Discussion - What Lies Beneath [SPOILERS]</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">51</td>
+                <td class="comments">43</td>
+                <td class="popularity">467.7</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://deadline.com/2025/07/american-experience-pbs-federal-funding-1236468541/" target="_blank" rel="noopener">&#x27;American Experience&#x27; To Pause New Episodes Amid Federal Funding Cuts</a></td>
+                <td class="subreddit">r/television</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">231</td>
+                <td class="comments">26</td>
+                <td class="popularity">465.6</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/anime/comments/1m8oqc3/fans_of_both_manga_and_anime_how_do_you_decide/" target="_blank" rel="noopener">Fans of both manga and anime, how do you decide which version to consume?</a></td>
+                <td class="subreddit">r/anime</td>
+                <td class="category">Identification &amp; Help</td>
+                <td class="score">22</td>
+                <td class="comments">81</td>
+                <td class="popularity">457.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://i.redd.it/gkw5kgalj2ff1.jpeg" target="_blank" rel="noopener">How many movies have you seen, and how many of those are watches from this year?</a></td>
+                <td class="subreddit">r/letterboxd</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">1</td>
+                <td class="comments">44</td>
+                <td class="popularity">437.8</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/flicks/comments/1m8j8x3/the_fantastic_four_first_steps_marvel_still_stuck/" target="_blank" rel="noopener">The Fantastic Four: First Steps - Marvel still stuck in its ways?</a></td>
+                <td class="subreddit">r/flicks</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">0</td>
+                <td class="comments">54</td>
+                <td class="popularity">430.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://youtu.be/5gYyveM2FV4?si=4JUIj5nA_4i8Y7PP" target="_blank" rel="noopener">Mononoke The Movie: Chapter II - The Ashes of Rage | Official Trailer | Netflix</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">209</td>
+                <td class="comments">26</td>
+                <td class="popularity">426.2</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/movies/comments/1m8jnhi/punch_drunk_in_love_with_that_movie/" target="_blank" rel="noopener">Punch drunk in love with that movie</a></td>
+                <td class="subreddit">r/movies</td>
+                <td class="category">Reviews &amp; Discussions</td>
+                <td class="score">68</td>
+                <td class="comments">37</td>
+                <td class="popularity">426.1</td>
+            </tr>
+            \n
+            <tr>
+                <td class="post-title"><a href="https://www.reddit.com/r/anime/comments/1m8hn0d/terrific_trainwreck_trio_20_rewatch_darling_in/" target="_blank" rel="noopener">[Terrific Trainwreck Trio 2.0 Rewatch] Darling in the FranXX Episode 23 Discussion</a></td>
+                <td class="subreddit">r/anime</td>
+                <td class="category">News &amp; Announcements</td>
+                <td class="score">15</td>
+                <td class="comments">77</td>
+                <td class="popularity">423.8</td>
+            </tr>
+            `
+            }
+        };
+        
+        function updateCategories() {
+            const domain = document.getElementById('domain-select').value;
+            const period = document.getElementById('period-select').value;
+            const categorySelect = document.getElementById('category-select');
+            
+            // Update category options
+            categorySelect.innerHTML = categoryData[domain][period];
+            
+            // Update table title
+            const titleMap = {
+                'finance': '💰 Finance',
+                'entertainment': '🎬 Entertainment'
+            };
+            const periodMap = {
+                'weekly': 'Weekly',
+                'daily': 'Daily'
+            };
+            
+            document.getElementById('table-title').textContent = 
+                `📈 Top Posts - ${titleMap[domain]} ${periodMap[period]}`;
+        }
+        
+        function loadPosts() {
+            const domain = document.getElementById('domain-select').value;
+            const period = document.getElementById('period-select').value;
+            const category = document.getElementById('category-select').value;
+            const tbody = document.getElementById('posts-tbody');
+            
+            // Show loading
+            tbody.innerHTML = '<tr><td colspan="6" class="loading">🔄 Loading posts...</td></tr>';
+            
+            // Simulate loading delay for better UX
+            setTimeout(() => {
+                let posts = postData[domain][period];
+                
+                // If specific category is selected, we would filter here
+                // For now, showing all posts from the selected domain/period
+                tbody.innerHTML = posts;
+            }, 500);
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCategories();
+            loadPosts();
+        });
+    </script>
+</body>
+</html>
+        
