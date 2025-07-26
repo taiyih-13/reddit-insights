@@ -112,7 +112,7 @@ class CleanRedditDashboard:
         }}
         
         .sidebar {{
-            width: 265px;
+            width: 285px;
             background: #2a2a2a;
             color: white;
             padding: 0;
@@ -140,12 +140,12 @@ class CleanRedditDashboard:
             border: 1px solid #4a5568;
             border-radius: 8px;
             padding: 8px 12px;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: 700;
             cursor: pointer;
             outline: none;
             width: calc(100% - 12px);
-            margin-left: 12px;
+            margin-left: -15px;
             appearance: none;
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
             background-position: right 8px center;
@@ -166,7 +166,7 @@ class CleanRedditDashboard:
         .category-dropdown option {{
             background: #2a2a2a;
             color: white;
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             padding: 8px 12px;
         }}
         
@@ -200,7 +200,7 @@ class CleanRedditDashboard:
         
         .main-content {{
             flex: 1;
-            margin-left: 265px;
+            margin-left: 285px;
             background: #f7f9fc;
         }}
         
@@ -668,7 +668,7 @@ class CleanRedditDashboard:
                 <div class="sidebar-title">
                     <select id="categorySelect" class="category-dropdown" onchange="switchCategory(this.value)">
                         <option value="finance" selected>Finance</option>
-                        <option value="movies_shows">Movies & Shows</option>
+                        <option value="movies_shows">Entertainment</option>
                     </select>
                 </div>
                 <img src="finance-logo.png" alt="Logo" class="sidebar-logo" id="sidebarLogo">
@@ -806,8 +806,8 @@ class CleanRedditDashboard:
                 document.getElementById('sidebarLogo').alt = 'Finance Logo';
             }} else if (category === 'movies_shows') {{
                 document.getElementById('moviesShowsCategory').classList.add('active');
-                document.getElementById('sidebarLogo').src = 'movies-logo.png';
-                document.getElementById('sidebarLogo').alt = 'Movies & Shows Logo';
+                document.getElementById('sidebarLogo').src = 'entertainment-logo.png';
+                document.getElementById('sidebarLogo').alt = 'Entertainment Logo';
             }}
             
             // Update stats based on current category and time filter
