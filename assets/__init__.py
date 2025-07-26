@@ -1,0 +1,1 @@
+# Assets package for data files and static resources
