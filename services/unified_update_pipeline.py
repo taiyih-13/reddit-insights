@@ -8,6 +8,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from extractors.finance_balanced_extractor import FinanceBalancedExtractor
 from extractors.entertainment_balanced_extractor import EntertainmentBalancedExtractorV2
+from extractors.travel_tips_extractor import TravelTipsBalancedExtractor
+from extractors.regional_travel_extractor import RegionalTravelBalancedExtractor
 from utils.dashboard_generator import CleanRedditDashboard as RedditDashboard
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -17,14 +19,18 @@ class UnifiedRealTimeUpdater:
         self.time_filter = time_filter
         self.state_file = f'assets/unified_pipeline_state_{time_filter}.json'
         
-        # Initialize extractors for both categories
+        # Initialize extractors for all categories
         self.finance_extractor = FinanceBalancedExtractor()
         self.entertainment_extractor = EntertainmentBalancedExtractorV2()
+        self.travel_tips_extractor = TravelTipsBalancedExtractor()
+        self.regional_travel_extractor = RegionalTravelBalancedExtractor()
         
-        # Data files for both categories
+        # Data files for all categories
         self.data_files = {
-            'finance': f'assets/{time_filter}_reddit_posts.csv',
-            'entertainment': f'assets/{time_filter}_entertainment_posts.csv'
+            'finance': f'assets/{time_filter}_finance_posts.csv',
+            'entertainment': f'assets/{time_filter}_entertainment_posts.csv',
+            'travel_tips': f'assets/{time_filter}_travel_tips_posts.csv',
+            'regional_travel': f'assets/{time_filter}_regional_travel_posts.csv'
         }
         
         # Update frequencies (in hours)
@@ -55,14 +61,16 @@ class UnifiedRealTimeUpdater:
                 'last_full_refresh': now - timedelta(hours=25),  # Force initial daily cleanup
                 'total_updates': 0,
                 'last_finance_update': None,
-                'last_entertainment_update': None
+                'last_entertainment_update': None,
+                'last_travel_tips_update': None,
+                'last_regional_travel_update': None
             }
     
     def save_pipeline_state(self, state):
         """Save unified pipeline state to file"""
         # Convert datetime to string for JSON serialization
         state_copy = state.copy()
-        for key in ['last_automated_extraction', 'last_full_refresh', 'last_finance_update', 'last_entertainment_update']:
+        for key in ['last_automated_extraction', 'last_full_refresh', 'last_finance_update', 'last_entertainment_update', 'last_travel_tips_update', 'last_regional_travel_update']:
             if key in state_copy and state_copy[key] is not None:
                 state_copy[key] = state_copy[key].isoformat()
         
@@ -81,7 +89,7 @@ class UnifiedRealTimeUpdater:
         try:
             df = self.finance_extractor.extract_balanced_posts(
                 time_filter=self.time_filter, 
-                base_limit=100
+                base_limit=60
             )
             if len(df) > 0:
                 print(f"   ✅ Finance: Extracted {len(df)} quality posts")
@@ -99,7 +107,7 @@ class UnifiedRealTimeUpdater:
         try:
             df = self.entertainment_extractor.extract_balanced_posts(
                 time_filter=self.time_filter, 
-                base_limit=100
+                base_limit=60
             )
             if len(df) > 0:
                 print(f"   ✅ Entertainment: Extracted {len(df)} quality posts")
@@ -111,19 +119,63 @@ class UnifiedRealTimeUpdater:
             print(f"   ❌ Entertainment extraction error: {e}")
             return pd.DataFrame()
     
+    def extract_travel_tips_data(self):
+        """Extract travel tips data using balanced extractor"""
+        print("   🧳 Extracting travel tips posts using balanced extraction...")
+        try:
+            df = self.travel_tips_extractor.extract_balanced_posts(
+                time_filter=self.time_filter, 
+                base_limit=60
+            )
+            if len(df) > 0:
+                print(f"   ✅ Travel Tips: Extracted {len(df)} quality posts")
+                return df
+            else:
+                print("   ❌ Travel Tips: No posts met quality standards")
+                return pd.DataFrame()
+        except Exception as e:
+            print(f"   ❌ Travel Tips extraction error: {e}")
+            return pd.DataFrame()
+    
+    
+    def extract_regional_travel_data(self):
+        """Extract regional travel data using balanced extractor"""
+        print("   🌍 Extracting regional travel posts using balanced extraction...")
+        try:
+            df = self.regional_travel_extractor.extract_balanced_posts(
+                time_filter=self.time_filter, 
+                base_limit=60
+            )
+            if len(df) > 0:
+                print(f"   ✅ Regional Travel: Extracted {len(df)} quality posts")
+                return df
+            else:
+                print("   ❌ Regional Travel: No posts met quality standards")
+                return pd.DataFrame()
+        except Exception as e:
+            print(f"   ❌ Regional Travel extraction error: {e}")
+            return pd.DataFrame()
+    
     def automated_extraction_system(self):
-        """Run comprehensive automated extraction for both categories simultaneously"""
+        """Run comprehensive automated extraction for all categories simultaneously"""
         print("🚀 Running unified automated extraction system...")
         
-        results = {'finance': None, 'entertainment': None}
+        results = {
+            'finance': None, 
+            'entertainment': None,
+            'travel_tips': None,
+            'regional_travel': None
+        }
         success_count = 0
         
-        # Use ThreadPoolExecutor to run both extractions in parallel
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            # Submit both extraction tasks
+        # Use ThreadPoolExecutor to run all extractions in parallel
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            # Submit all extraction tasks
             future_to_category = {
                 executor.submit(self.extract_finance_data): 'finance',
-                executor.submit(self.extract_entertainment_data): 'entertainment'
+                executor.submit(self.extract_entertainment_data): 'entertainment',
+                executor.submit(self.extract_travel_tips_data): 'travel_tips',
+                executor.submit(self.extract_regional_travel_data): 'regional_travel'
             }
             
             # Collect results as they complete
@@ -148,15 +200,15 @@ class UnifiedRealTimeUpdater:
                 updated_categories.append(category)
                 
                 # Show category breakdown
-                if category == 'finance':
-                    print(f"   📊 Finance category breakdown:")
-                    category_counts = df['category'].value_counts()
-                    for cat, count in category_counts.items():
-                        percentage = (count / len(df)) * 100
-                        print(f"      • {cat}: {count} posts ({percentage:.1f}%)")
-                
-                elif category == 'entertainment':
-                    print(f"   📊 Entertainment discussion-type breakdown:")
+                if 'category' in df.columns:
+                    category_name_map = {
+                        'finance': 'Finance',
+                        'entertainment': 'Entertainment',
+                        'travel_tips': 'Travel Tips',
+                        'regional_travel': 'Regional Travel'
+                    }
+                    
+                    print(f"   📊 {category_name_map.get(category, category.title())} category breakdown:")
                     category_counts = df['category'].value_counts()
                     for cat, count in category_counts.items():
                         percentage = (count / len(df)) * 100
@@ -171,26 +223,37 @@ class UnifiedRealTimeUpdater:
                 state['last_finance_update'] = now
             if 'entertainment' in updated_categories:
                 state['last_entertainment_update'] = now
+            if 'travel_tips' in updated_categories:
+                state['last_travel_tips_update'] = now
+            if 'regional_travel' in updated_categories:
+                state['last_regional_travel_update'] = now
             self.save_pipeline_state(state)
             
             print(f"   ✅ Updated categories: {', '.join(updated_categories)}")
             return True
         else:
-            print("   ❌ No new posts met quality standards in either category")
+            print("   ❌ No new posts met quality standards in any category")
             return False
     
     def full_refresh(self):
-        """Complete pipeline refresh for both categories"""
+        """Complete pipeline refresh for all categories"""
         print("🔄 Running unified full pipeline refresh...")
         
-        results = {'finance': None, 'entertainment': None}
+        results = {
+            'finance': None, 
+            'entertainment': None,
+            'travel_tips': None,
+            'regional_travel': None
+        }
         
-        # Use ThreadPoolExecutor to run both extractions in parallel
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            # Submit both extraction tasks
+        # Use ThreadPoolExecutor to run all extractions in parallel
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            # Submit all extraction tasks
             future_to_category = {
                 executor.submit(self.extract_finance_data): 'finance',
-                executor.submit(self.extract_entertainment_data): 'entertainment'
+                executor.submit(self.extract_entertainment_data): 'entertainment',
+                executor.submit(self.extract_travel_tips_data): 'travel_tips',
+                executor.submit(self.extract_regional_travel_data): 'regional_travel'
             }
             
             # Collect results as they complete
@@ -221,7 +284,7 @@ class UnifiedRealTimeUpdater:
         if updated_categories:
             return True
         else:
-            print("   ❌ No data extracted for either category")
+            print("   ❌ No data extracted for any category")
             return False
     
     def _update_data_incrementally(self, new_df, category):

@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 from utils.popularity_ranker import PopularityRankerV2
+from utils.comment_fetcher import fetch_top_comments
 
 load_dotenv()
 
@@ -101,7 +102,8 @@ class EntertainmentRedditExtractor:
                         'url': post.url,
                         'selftext': post.selftext[:1000] if post.selftext else '',
                         'link_flair_text': post.link_flair_text,
-                        'post_id': post.id
+                        'post_id': post.id,
+                        'top_comments': '[]'  # Fetched on-demand via post_id
                     }
                     all_posts.append(post_data)
                 

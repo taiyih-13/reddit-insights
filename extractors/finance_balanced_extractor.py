@@ -1,8 +1,9 @@
 import pandas as pd
 import time
-from .finance_comprehensive_extractor import FinanceComprehensiveExtractor
+from .finance_extractor import FinanceComprehensiveExtractor
 from utils.popularity_ranker import PopularityRankerV2
 from classifiers.finance_classifier import FinanceClassifier
+from utils.comment_fetcher import fetch_top_comments
 
 class FinanceBalancedExtractor:
     def __init__(self):
@@ -87,7 +88,8 @@ class FinanceBalancedExtractor:
                             'url': post.url,
                             'selftext': post.selftext[:1000],
                             'link_flair_text': post.link_flair_text,
-                            'post_id': post.id
+                            'post_id': post.id,
+                            'top_comments': '[]'  # Fetched on-demand via post_id
                         }
                         all_posts.append(post_data)
                     

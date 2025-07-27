@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """
 Complete Data Generation Script
-Generates both daily and weekly data for finance and entertainment categories
+Generates both daily and weekly data for all categories: finance, entertainment, and travel
 """
 
 import subprocess
 import sys
 import time
-from datetime import datetime
+import pandas as pd
+import os
+from datetime import datetime, timedelta
 
 def run_command(command, description):
     """Run a command and handle errors"""
@@ -25,13 +27,50 @@ def run_command(command, description):
         print(f"❌ Unexpected error during {description}: {e}")
         return False
 
+def extract_daily_from_weekly():
+    """Extract daily data by filtering weekly data for last 24 hours"""
+    print(f"\n🔄 Extracting Daily Data from Weekly")
+    print("=" * 60)
+    
+    try:
+        # Calculate 24-hour cutoff
+        cutoff_time = datetime.now() - timedelta(days=1)
+        print(f"Filtering posts from: {cutoff_time.strftime('%Y-%m-%d %H:%M:%S')} onwards")
+        
+        # Define all categories
+        categories = ['finance', 'entertainment', 'travel_tips', 'nature_adventure', 'regional_travel']
+        
+        for category in categories:
+            weekly_path = f'assets/week_{category}_posts.csv'
+            daily_path = f'assets/day_{category}_posts.csv'
+            
+            if os.path.exists(weekly_path):
+                df_weekly = pd.read_csv(weekly_path)
+                df_weekly['created_utc'] = pd.to_datetime(df_weekly['created_utc'])
+                
+                # Filter for last 24 hours
+                df_daily = df_weekly[df_weekly['created_utc'] >= cutoff_time]
+                
+                # Save daily data
+                df_daily.to_csv(daily_path, index=False)
+                print(f"✅ {category.replace('_', ' ').title()}: Extracted {len(df_daily)} daily posts from {len(df_weekly)} weekly posts")
+            else:
+                print(f"⚠️  {category.replace('_', ' ').title()} weekly file not found: {weekly_path}")
+        
+        print(f"✅ Daily data extraction completed successfully")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error during daily extraction: {e}")
+        return False
+
 def main():
     """Generate all data and dashboard"""
     start_time = datetime.now()
     
     print("🎯 COMPLETE REDDIT DATA GENERATION")
     print("=" * 60)
-    print("Generating both daily and weekly data for finance and entertainment")
+    print("Generating weekly data and extracting daily data from it")
     print(f"Started at: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     
     success_count = 0
@@ -41,17 +80,13 @@ def main():
     if run_command("python services/unified_update_pipeline.py --weekly", "Weekly Data Generation"):
         success_count += 1
     else:
-        print("⚠️  Weekly data generation failed - continuing with daily...")
+        print("⚠️  Weekly data generation failed - continuing anyway...")
     
-    # Brief pause between extractions to avoid rate limiting
-    print("\n⏱️  Pausing 5 seconds to avoid rate limiting...")
-    time.sleep(5)
-    
-    # Step 2: Generate Daily Data  
-    if run_command("python services/unified_update_pipeline.py --daily", "Daily Data Generation"):
+    # Step 2: Extract Daily Data from Weekly (no API calls needed)
+    if extract_daily_from_weekly():
         success_count += 1
     else:
-        print("⚠️  Daily data generation failed - continuing with dashboard...")
+        print("⚠️  Daily data extraction failed - continuing with dashboard...")
     
     # Step 3: Generate Dashboard
     if run_command("python utils/dashboard_generator.py", "Dashboard Generation"):
@@ -71,11 +106,18 @@ def main():
     if success_count == total_steps:
         print("\n🎉 All data generated successfully!")
         print("📂 Files created:")
-        print("   • assets/week_reddit_posts.csv (weekly finance)")
-        print("   • assets/day_reddit_posts.csv (daily finance)")  
+        print("   • assets/week_finance_posts.csv (weekly finance)")
+        print("   • assets/day_finance_posts.csv (daily finance - filtered from weekly)")  
         print("   • assets/week_entertainment_posts.csv (weekly entertainment)")
-        print("   • assets/day_entertainment_posts.csv (daily entertainment)")
+        print("   • assets/day_entertainment_posts.csv (daily entertainment - filtered from weekly)")
+        print("   • assets/week_travel_tips_posts.csv (weekly travel tips)")
+        print("   • assets/day_travel_tips_posts.csv (daily travel tips - filtered from weekly)")
+        print("   • assets/week_nature_adventure_posts.csv (weekly nature & adventure)")
+        print("   • assets/day_nature_adventure_posts.csv (daily nature & adventure - filtered from weekly)")
+        print("   • assets/week_regional_travel_posts.csv (weekly regional travel)")
+        print("   • assets/day_regional_travel_posts.csv (daily regional travel - filtered from weekly)")
         print("   • assets/reddit_dashboard.html (unified dashboard)")
+        print("\n✨ Optimization: Daily data extracted from weekly data (no duplicate API calls)")
         print("\n🤖 To start AI summarization:")
         print("   python services/ai_summarizer.py")
     else:

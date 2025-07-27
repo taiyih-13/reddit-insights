@@ -5,89 +5,323 @@ import html
 import os
 
 class CleanRedditDashboard:
-    def __init__(self, weekly_csv='assets/week_reddit_posts.csv', daily_csv='assets/day_reddit_posts.csv', 
-                 weekly_entertainment_csv='assets/week_entertainment_posts.csv', daily_entertainment_csv='assets/day_entertainment_posts.csv'):
-        # Load finance datasets
-        if weekly_csv and os.path.exists(weekly_csv):
-            try:
-                self.weekly_df = pd.read_csv(weekly_csv)
-                self.weekly_df['created_utc'] = pd.to_datetime(self.weekly_df['created_utc'])
-                print(f"✅ Loaded weekly finance data: {len(self.weekly_df)} posts from {weekly_csv}")
-            except Exception as e:
-                print(f"❌ Error loading {weekly_csv}: {e}")
-                self.weekly_df = pd.DataFrame()
-        else:
-            if weekly_csv:
-                print(f"⚠️  Weekly finance file not found: {weekly_csv}")
-            self.weekly_df = pd.DataFrame()
-            
-        if daily_csv and os.path.exists(daily_csv):
-            try:
-                self.daily_df = pd.read_csv(daily_csv)
-                self.daily_df['created_utc'] = pd.to_datetime(self.daily_df['created_utc'])
-                print(f"✅ Loaded daily finance data: {len(self.daily_df)} posts from {daily_csv}")
-            except Exception as e:
-                print(f"❌ Error loading {daily_csv}: {e}")
-                self.daily_df = pd.DataFrame()
-        else:
-            if daily_csv:
-                print(f"⚠️  Daily finance file not found: {daily_csv}")
-            self.daily_df = pd.DataFrame()
+    def __init__(self, assets_directory='assets'):
+        self.assets_directory = assets_directory
+        self.datasets = {}
         
-        # Load entertainment datasets
-        if weekly_entertainment_csv and os.path.exists(weekly_entertainment_csv):
-            try:
-                self.weekly_entertainment_df = pd.read_csv(weekly_entertainment_csv)
-                self.weekly_entertainment_df['created_utc'] = pd.to_datetime(self.weekly_entertainment_df['created_utc'])
-                print(f"✅ Loaded weekly entertainment data: {len(self.weekly_entertainment_df)} posts from {weekly_entertainment_csv}")
-            except Exception as e:
-                print(f"❌ Error loading {weekly_entertainment_csv}: {e}")
-                self.weekly_entertainment_df = pd.DataFrame()
-        else:
-            if weekly_entertainment_csv:
-                print(f"⚠️  Weekly entertainment file not found: {weekly_entertainment_csv}")
-            self.weekly_entertainment_df = pd.DataFrame()
-            
-        if daily_entertainment_csv and os.path.exists(daily_entertainment_csv):
-            try:
-                self.daily_entertainment_df = pd.read_csv(daily_entertainment_csv)
-                self.daily_entertainment_df['created_utc'] = pd.to_datetime(self.daily_entertainment_df['created_utc'])
-                print(f"✅ Loaded daily entertainment data: {len(self.daily_entertainment_df)} posts from {daily_entertainment_csv}")
-            except Exception as e:
-                print(f"❌ Error loading {daily_entertainment_csv}: {e}")
-                self.daily_entertainment_df = pd.DataFrame()
-        else:
-            if daily_entertainment_csv:
-                print(f"⚠️  Daily entertainment file not found: {daily_entertainment_csv}")
-            self.daily_entertainment_df = pd.DataFrame()
+        # Auto-discover all available CSV files
+        self._discover_datasets()
         
-        # Default to weekly for backwards compatibility
-        self.df = self.weekly_df if not self.weekly_df.empty else self.daily_df
+        # Set default dataset for backwards compatibility
+        if 'finance' in self.datasets and not self.datasets['finance']['weekly'].empty:
+            self.df = self.datasets['finance']['weekly']
+        elif 'finance' in self.datasets and not self.datasets['finance']['daily'].empty:
+            self.df = self.datasets['finance']['daily']
+        else:
+            self.df = pd.DataFrame()
+    
+    def _discover_datasets(self):
+        """Automatically discover and load all available datasets"""
+        print("🔍 Discovering available datasets...")
+        
+        # Define expected categories - travel will be combined
+        categories = ['finance', 'entertainment', 'travel_tips', 'regional_travel']
+        
+        for category in categories:
+            self.datasets[category] = {'weekly': pd.DataFrame(), 'daily': pd.DataFrame()}
+            
+            # Try to load weekly data
+            weekly_file = os.path.join(self.assets_directory, f'week_{category}_posts.csv')
+            if os.path.exists(weekly_file):
+                try:
+                    df = pd.read_csv(weekly_file)
+                    df['created_utc'] = pd.to_datetime(df['created_utc'])
+                    self.datasets[category]['weekly'] = df
+                    print(f"✅ Loaded weekly {category}: {len(df)} posts")
+                except Exception as e:
+                    print(f"❌ Error loading weekly {category}: {e}")
+            
+            # Try to load daily data
+            daily_file = os.path.join(self.assets_directory, f'day_{category}_posts.csv')
+            if os.path.exists(daily_file):
+                try:
+                    df = pd.read_csv(daily_file)
+                    df['created_utc'] = pd.to_datetime(df['created_utc'])
+                    self.datasets[category]['daily'] = df
+                    print(f"✅ Loaded daily {category}: {len(df)} posts")
+                except Exception as e:
+                    print(f"❌ Error loading daily {category}: {e}")
+        
+        # Combine travel categories into one unified "travel" category
+        self._combine_travel_categories()
+        
+        # Summary
+        available_categories = [cat for cat in categories if not self.datasets[cat]['weekly'].empty or not self.datasets[cat]['daily'].empty]
+        # Replace individual travel categories with combined "travel" in the summary
+        if any(cat in available_categories for cat in ['travel_tips', 'regional_travel']):
+            available_categories = [cat for cat in available_categories if cat not in ['travel_tips', 'regional_travel']]
+            available_categories.append('travel')
+        print(f"📊 Available categories: {', '.join(available_categories)}")
+        
+        # Legacy attribute mappings for backwards compatibility
+        if 'finance' in self.datasets:
+            self.weekly_df = self.datasets['finance']['weekly']
+            self.daily_df = self.datasets['finance']['daily']
+        if 'entertainment' in self.datasets:
+            self.weekly_entertainment_df = self.datasets['entertainment']['weekly']
+            self.daily_entertainment_df = self.datasets['entertainment']['daily']
+    
+    def _combine_travel_categories(self):
+        """Combine travel_tips and regional_travel into one 'travel' category with 6 categories"""
+        print("🔄 Combining travel categories into unified Travel category...")
+        
+        self.datasets['travel'] = {'weekly': pd.DataFrame(), 'daily': pd.DataFrame()}
+        
+        for time_filter in ['weekly', 'daily']:
+            combined_data = []
+            
+            # Combine travel_tips data
+            if 'travel_tips' in self.datasets and not self.datasets['travel_tips'][time_filter].empty:
+                df = self.datasets['travel_tips'][time_filter].copy()
+                df['main_category'] = 'Travel'
+                if 'travel_subcategory' in df.columns:
+                    # Map travel tips categories with better names
+                    travel_tips_mapping = {
+                        'travel_advice': 'Travel Advice',
+                        'solo_travel': 'Solo Travel',
+                        'budget_travel': 'Budget Travel',
+                        'general': 'Travel Advice'  # Legacy mapping
+                    }
+                    df['category'] = df['travel_subcategory'].map(travel_tips_mapping).fillna(df['travel_subcategory'].str.title())
+                else:
+                    df['category'] = 'Travel Advice'
+                combined_data.append(df)
+            
+            # Combine regional_travel data - map new 6 regional categories
+            if 'regional_travel' in self.datasets and not self.datasets['regional_travel'][time_filter].empty:
+                df = self.datasets['regional_travel'][time_filter].copy()
+                df['main_category'] = 'Travel'
+                if 'regional_subcategory' in df.columns:
+                    # Map the new travel-focused categories
+                    category_mapping = {
+                        'asian_travel': 'Asian Travel',
+                        'european_travel': 'European Travel',
+                        'american_travel': 'American Travel',
+                        'adventure_travel': 'Adventure Travel'
+                    }
+                    df['category'] = df['regional_subcategory'].map(category_mapping).fillna(df['regional_subcategory'].str.title())
+                else:
+                    df['category'] = 'International'
+                combined_data.append(df)
+            
+            # Combine all travel data
+            if combined_data:
+                combined_df = pd.concat(combined_data, ignore_index=True)
+                self.datasets['travel'][time_filter] = combined_df
+                print(f"✅ Combined {time_filter} travel data: {len(combined_df)} posts across {combined_df['category'].nunique()} categories")
+    
+    def _generate_category_options(self):
+        """Generate dropdown options for available categories"""
+        category_display_names = {
+            'finance': 'Finance',
+            'entertainment': 'Entertainment',
+            'travel': 'Travel'
+        }
+        
+        options = []
+        # Use only main categories (finance, entertainment, travel)
+        available_categories = ['finance', 'entertainment']
+        if 'travel' in self.datasets and (not self.datasets['travel']['weekly'].empty or not self.datasets['travel']['daily'].empty):
+            available_categories.append('travel')
+        
+        for i, category in enumerate(available_categories):
+            display_name = category_display_names.get(category, category.replace('_', ' ').title())
+            selected = ' selected' if i == 0 else ''  # Select first available category
+            options.append(f'                        <option value="{category}"{selected}>{display_name}</option>')
+        
+        return '\n'.join(options)
+    
+    def _generate_all_category_content(self):
+        """Generate content areas for all available categories dynamically"""
+        category_id_map = {
+            'finance': 'financeCategory',
+            'entertainment': 'moviesShowsCategory',  # Keep legacy name for compatibility
+            'travel': 'travelCategory'
+        }
+        
+        # Use only main categories (finance, entertainment, travel)
+        available_categories = ['finance', 'entertainment']
+        if 'travel' in self.datasets and (not self.datasets['travel']['weekly'].empty or not self.datasets['travel']['daily'].empty):
+            available_categories.append('travel')
+        
+        content_html = ""
+        
+        for i, category in enumerate(available_categories):
+            category_id = category_id_map.get(category, f"{category}Category")
+            active_class = "active" if i == 0 else ""  # First category is active
+            
+            # Generate time content IDs that match JavaScript expectations
+            time_content_map = {
+                'finance': {'weekly': 'weeklyContent', 'daily': 'dailyContent'},
+                'entertainment': {'weekly': 'weeklyMoviesContent', 'daily': 'dailyMoviesContent'},
+                'travel': {'weekly': 'weeklyTravelContent', 'daily': 'dailyTravelContent'}
+            }
+            
+            weekly_id = time_content_map.get(category, {}).get('weekly', f'weekly{category.title().replace("_", "")}Content')
+            daily_id = time_content_map.get(category, {}).get('daily', f'daily{category.title().replace("_", "")}Content')
+            
+            content_html += f"""
+                <div id="{category_id}" class="category-content {active_class}">
+                    <div id="{weekly_id}" class="time-content active">
+                        {self._generate_category_posts_html(category, 'weekly')}
+                    </div>
+                    <div id="{daily_id}" class="time-content">
+                        {self._generate_category_posts_html(category, 'daily')}
+                    </div>
+                </div>
+                """
+        
+        return content_html
+    
+    def _generate_category_posts_html(self, category, time_filter='weekly'):
+        """Generate HTML for posts in a specific category"""
+        df = self.datasets[category][time_filter]
+        if df.empty:
+            return f"<div class='category-section'><h2>No {time_filter} {category.replace('_', ' ')} data available</h2><p>Please run: <code>python services/generate_all_data.py</code></p></div>"
+        
+        # Use existing method logic but for any category
+        if category == 'finance':
+            self.current_category = 'finance'
+            return self._generate_posts_html(time_filter)
+        elif category == 'entertainment':
+            self.current_category = 'entertainment'
+            return self._generate_entertainment_posts_html(time_filter)
+        else:
+            # For travel categories, use the same structure as finance
+            self.current_category = 'travel'
+            return self._generate_travel_posts_html(category, time_filter)
+    
+    def _generate_travel_posts_html(self, category, time_filter='weekly'):
+        """Generate simple HTML for travel category posts - 6 flat regional categories"""
+        df = self.datasets[category][time_filter]
+        if df.empty:
+            return f"<div class='category-section'><h2>No {time_filter} {category.replace('_', ' ')} data available</h2><p>Please run: <code>python services/generate_all_data.py</code></p></div>"
+        
+        posts_html = ""
+        
+        # Travel category priority - logical flow starting with Travel Advice
+        category_priority = [
+            # Travel Tips (logical flow)
+            'Travel Advice', 'Solo Travel', 'Budget Travel',
+            # Regional Travel (logical order)
+            'Asian Travel', 'European Travel', 'American Travel', 'Adventure Travel'
+        ]
+        
+        # Determine the correct column name for categories
+        if 'category' in df.columns:
+            category_column = 'category'
+        elif 'travel_subcategory' in df.columns:
+            category_column = 'travel_subcategory'  
+        elif 'regional_subcategory' in df.columns:
+            category_column = 'regional_subcategory'
+        else:
+            # Fallback: create a single category
+            df['category'] = category.replace('_', ' ').title()
+            category_column = 'category'
+            
+        # Order categories by post count (most to least) to match sidebar order
+        category_counts = df[category_column].value_counts()
+        ordered_categories = list(category_counts.index)
+        
+        for category_name in ordered_categories:
+            category_posts = df[df[category_column] == category_name].sort_values('popularity_score', ascending=False)
+            safe_category = category_name.replace(' ', '_').replace('&', 'and').lower()
+            
+            posts_html += f'<div class="category-section" id="category-{safe_category}-{time_filter}">\n'
+            posts_html += f'<div class="category-header-row">\n'
+            posts_html += f'<h2 class="category-header">{category_name}</h2>\n'
+            posts_html += f'<button class="summarize-btn" onclick="summarizeCategory(\'{category_name}\', \'{time_filter}\')" data-category="{category_name}" data-time-filter="{time_filter}">\n'
+            posts_html += f'Summarize\n'
+            posts_html += f'</button>\n'
+            posts_html += f'</div>\n'
+            posts_html += f'<div class="summary-container" id="summary-{safe_category}-{time_filter}" style="display: none;">\n'
+            posts_html += f'<div class="summary-content"></div>\n'
+            posts_html += f'</div>\n'
+            
+            # Generate all posts but mark them as visible/hidden for pagination
+            post_count = 0
+            for _, post in category_posts.iterrows():
+                post_count += 1
+                # First 10 posts are visible, rest are hidden
+                visibility_class = 'post-visible' if post_count <= 10 else 'post-hidden'
+                posts_html += self._generate_post_card(post, safe_category, visibility_class)
+            
+            # Add pagination buttons if there are more than 10 posts
+            if len(category_posts) > 10:
+                posts_html += f'<div class="pagination-container" id="pagination-{safe_category}-{time_filter}">\n'
+                posts_html += f'<button class="show-more-btn" onclick="showMorePosts(\'{safe_category}-{time_filter}\')" data-category="{safe_category}-{time_filter}" data-shown="10" data-total="{len(category_posts)}">Show More</button>\n'
+                posts_html += f'<button class="show-less-btn" onclick="showLessPosts(\'{safe_category}-{time_filter}\')" data-category="{safe_category}-{time_filter}" style="display: none;">Show Less</button>\n'
+                posts_html += f'</div>\n'
+            
+            posts_html += '</div>\n'
+        
+        return posts_html
+    
+    def _generate_stats_data(self, category_stats):
+        """Generate JavaScript statsData object for all categories dynamically"""
+        # Map category names to JavaScript-friendly keys
+        category_js_map = {
+            'finance': 'finance',
+            'entertainment': 'movies_shows',  # Keep legacy name for JS compatibility
+            'travel': 'travel'  # Unified travel category
+        }
+        
+        stats_js = []
+        for category, stats in category_stats.items():
+            if category in category_js_map:
+                js_key = category_js_map[category]
+                weekly_posts = stats.get('weekly', {}).get('total_posts', 0)
+                weekly_upvotes = stats.get('weekly', {}).get('total_upvotes', 0)
+                daily_posts = stats.get('daily', {}).get('total_posts', 0)
+                daily_upvotes = stats.get('daily', {}).get('total_upvotes', 0)
+                
+                category_js = f"""
+            {js_key}: {{
+                weekly: {{
+                    posts: {weekly_posts},
+                    upvotes: {weekly_upvotes}
+                }},
+                daily: {{
+                    posts: {daily_posts},
+                    upvotes: {daily_upvotes}
+                }}
+            }}"""
+                stats_js.append(category_js)
+        
+        return ','.join(stats_js)
         
     def generate_dashboard(self, output_file='assets/reddit_dashboard.html'):
         """Generate a unified dashboard with daily/weekly toggle"""
         
-        # Calculate stats for finance datasets
-        weekly_stats = {
-            'total_posts': len(self.weekly_df) if not self.weekly_df.empty else 0,
-            'total_upvotes': self.weekly_df['score'].sum() if not self.weekly_df.empty else 0,
-        }
+        # Calculate stats for all available categories
+        category_stats = {}
+        for category, data in self.datasets.items():
+            category_stats[category] = {
+                'weekly': {
+                    'total_posts': len(data['weekly']) if not data['weekly'].empty else 0,
+                    'total_upvotes': data['weekly']['score'].sum() if not data['weekly'].empty else 0,
+                },
+                'daily': {
+                    'total_posts': len(data['daily']) if not data['daily'].empty else 0,
+                    'total_upvotes': data['daily']['score'].sum() if not data['daily'].empty else 0,
+                }
+            }
         
-        daily_stats = {
-            'total_posts': len(self.daily_df) if not self.daily_df.empty else 0,
-            'total_upvotes': self.daily_df['score'].sum() if not self.daily_df.empty else 0,
-        }
-        
-        # Calculate stats for entertainment datasets
-        weekly_entertainment_stats = {
-            'total_posts': len(self.weekly_entertainment_df) if not self.weekly_entertainment_df.empty else 0,
-            'total_upvotes': self.weekly_entertainment_df['score'].sum() if not self.weekly_entertainment_df.empty else 0,
-        }
-        
-        daily_entertainment_stats = {
-            'total_posts': len(self.daily_entertainment_df) if not self.daily_entertainment_df.empty else 0,
-            'total_upvotes': self.daily_entertainment_df['score'].sum() if not self.daily_entertainment_df.empty else 0,
-        }
+        # Legacy stats for backwards compatibility
+        weekly_stats = category_stats.get('finance', {}).get('weekly', {'total_posts': 0, 'total_upvotes': 0})
+        daily_stats = category_stats.get('finance', {}).get('daily', {'total_posts': 0, 'total_upvotes': 0})
+        weekly_entertainment_stats = category_stats.get('entertainment', {}).get('weekly', {'total_posts': 0, 'total_upvotes': 0})
+        daily_entertainment_stats = category_stats.get('entertainment', {}).get('daily', {'total_posts': 0, 'total_upvotes': 0})
         
         # Generate HTML
         html_content = f"""<!DOCTYPE html>
@@ -95,7 +329,7 @@ class CleanRedditDashboard:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reddit Finance Dashboard</title>
+    <title>Reddit Insights Dashboard</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         
@@ -140,7 +374,7 @@ class CleanRedditDashboard:
             border: 1px solid #4a5568;
             border-radius: 8px;
             padding: 8px 12px;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             font-weight: 700;
             cursor: pointer;
             outline: none;
@@ -617,6 +851,51 @@ class CleanRedditDashboard:
             line-height: 1.5;
         }}
         
+        .post-comments {{
+            background: #f0f8ff;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            border: 1px solid #bee3f8;
+        }}
+        
+        .comments-list {{
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }}
+        
+        .comment-item {{
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #4299e1;
+        }}
+        
+        .comment-meta {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.75rem;
+        }}
+        
+        .comment-author {{
+            font-weight: 600;
+            color: #2d3748;
+        }}
+        
+        .comment-score {{
+            color: #4299e1;
+            font-weight: 500;
+        }}
+        
+        .comment-text {{
+            font-size: 0.875rem;
+            color: #4a5568;
+            line-height: 1.4;
+        }}
+        
         .pagination-container {{
             text-align: center;
             margin: 24px 0;
@@ -658,6 +937,7 @@ class CleanRedditDashboard:
             border-radius: 4px;
             font-weight: 600;
         }}
+        
     </style>
 </head>
 <body>
@@ -667,8 +947,7 @@ class CleanRedditDashboard:
             <div class="sidebar-header">
                 <div class="sidebar-title">
                     <select id="categorySelect" class="category-dropdown" onchange="switchCategory(this.value)">
-                        <option value="finance" selected>Finance</option>
-                        <option value="movies_shows">Entertainment</option>
+{self._generate_category_options()}
                     </select>
                 </div>
                 <img src="finance-logo.png" alt="Logo" class="sidebar-logo" id="sidebarLogo">
@@ -732,50 +1011,22 @@ class CleanRedditDashboard:
                     <div id="searchResults" class="search-results"></div>
                 </div>
                 
-                <div id="financeCategory" class="category-content active">
-                    <div id="weeklyContent" class="time-content active">
-                        {self._generate_posts_html('weekly')}
-                    </div>
-                    <div id="dailyContent" class="time-content">
-                        {self._generate_posts_html('daily')}
-                    </div>
-                </div>
-                
-                <div id="moviesShowsCategory" class="category-content">
-                    <div id="weeklyMoviesContent" class="time-content active">
-                        {self._generate_entertainment_posts_html('weekly')}
-                    </div>
-                    <div id="dailyMoviesContent" class="time-content">
-                        {self._generate_entertainment_posts_html('daily')}
-                    </div>
-                </div>
+                {self._generate_all_category_content()}
             </div>
         </div>
     </div>
     
     <script>
-        // Data for both categories and time filters
+        // Data for all categories and time filters
         const statsData = {{
-            finance: {{
-                weekly: {{
-                    posts: {weekly_stats['total_posts']},
-                    upvotes: {weekly_stats['total_upvotes']}
-                }},
-                daily: {{
-                    posts: {daily_stats['total_posts']},
-                    upvotes: {daily_stats['total_upvotes']}
-                }}
-            }},
-            movies_shows: {{
-                weekly: {{
-                    posts: {weekly_entertainment_stats['total_posts']},
-                    upvotes: {weekly_entertainment_stats['total_upvotes']}
-                }},
-                daily: {{
-                    posts: {daily_entertainment_stats['total_posts']},
-                    upvotes: {daily_entertainment_stats['total_upvotes']}
-                }}
-            }}
+            {self._generate_stats_data(category_stats)}
+        }};
+        
+        // Map category names to stats keys for compatibility
+        const categoryStatsMap = {{
+            'finance': 'finance',
+            'entertainment': 'movies_shows',
+            'travel': 'travel'  // Unified travel category
         }};
         
         const categoryData = {{
@@ -786,6 +1037,10 @@ class CleanRedditDashboard:
             movies_shows: {{
                 weekly: `{self._generate_entertainment_category_tabs('weekly')}`,
                 daily: `{self._generate_entertainment_category_tabs('daily')}`
+            }},
+            travel: {{
+                weekly: `{self._generate_travel_category_tabs('weekly')}`,
+                daily: `{self._generate_travel_category_tabs('daily')}`
             }}
         }};
         
@@ -799,15 +1054,31 @@ class CleanRedditDashboard:
                 content.classList.remove('active');
             }});
             
-            // Show selected category content
-            if (category === 'finance') {{
-                document.getElementById('financeCategory').classList.add('active');
-                document.getElementById('sidebarLogo').src = 'finance-logo.png';
-                document.getElementById('sidebarLogo').alt = 'Finance Logo';
-            }} else if (category === 'movies_shows') {{
-                document.getElementById('moviesShowsCategory').classList.add('active');
-                document.getElementById('sidebarLogo').src = 'entertainment-logo.png';
-                document.getElementById('sidebarLogo').alt = 'Entertainment Logo';
+            // Show selected category content - dynamic mapping
+            const categoryIdMap = {{
+                'finance': 'financeCategory',
+                'entertainment': 'moviesShowsCategory',  // Keep legacy name
+                'travel': 'travelCategory'  // Unified travel category
+            }};
+            
+            const logoMap = {{
+                'finance': {{'src': 'finance-logo.png', 'alt': 'Finance Logo'}},
+                'entertainment': {{'src': 'entertainment-logo.png', 'alt': 'Entertainment Logo'}},
+                'travel': {{'src': 'travel-logo.png', 'alt': 'Travel Logo'}}
+            }};
+            
+            const categoryId = categoryIdMap[category] || category + 'Category';
+            const categoryElement = document.getElementById(categoryId);
+            if (categoryElement) {{
+                categoryElement.classList.add('active');
+            }}
+            
+            // Update logo
+            const logoInfo = logoMap[category] || {{'src': 'finance-logo.png', 'alt': 'Logo'}};
+            const logoElement = document.getElementById('sidebarLogo');
+            if (logoElement) {{
+                logoElement.src = logoInfo.src;
+                logoElement.alt = logoInfo.alt;
             }}
             
             // Update stats based on current category and time filter
@@ -822,10 +1093,11 @@ class CleanRedditDashboard:
             // Update dropdown value (in case called programmatically)
             document.getElementById('timeFilterSelect').value = timeFilter;
             
-            // Update stats based on current category
-            if (statsData[currentCategory] && statsData[currentCategory][timeFilter]) {{
-                document.getElementById('totalPosts').textContent = statsData[currentCategory][timeFilter].posts.toLocaleString();
-                document.getElementById('totalUpvotes').textContent = statsData[currentCategory][timeFilter].upvotes.toLocaleString();
+            // Update stats based on current category using mapping
+            const statsKey = categoryStatsMap[currentCategory] || currentCategory;
+            if (statsData[statsKey] && statsData[statsKey][timeFilter]) {{
+                document.getElementById('totalPosts').textContent = statsData[statsKey][timeFilter].posts.toLocaleString();
+                document.getElementById('totalUpvotes').textContent = statsData[statsKey][timeFilter].upvotes.toLocaleString();
             }} else {{
                 document.getElementById('totalPosts').textContent = '0';
                 document.getElementById('totalUpvotes').textContent = '0';
@@ -839,13 +1111,20 @@ class CleanRedditDashboard:
                     content.style.display = 'none';
                 }});
                 
-                // Show appropriate time content based on category
-                if (currentCategory === 'finance') {{
-                    document.getElementById(timeFilter + 'Content').classList.add('active');
-                    document.getElementById(timeFilter + 'Content').style.display = 'block';
-                }} else if (currentCategory === 'movies_shows') {{
-                    document.getElementById(timeFilter + 'MoviesContent').classList.add('active');
-                    document.getElementById(timeFilter + 'MoviesContent').style.display = 'block';
+                // Show appropriate time content based on category - dynamic
+                const timeContentIdMap = {{
+                    'finance': timeFilter + 'Content',
+                    'entertainment': timeFilter + 'MoviesContent',  // Keep legacy pattern
+                    'travel': timeFilter + 'TravelContent'  // Unified travel category
+                }};
+                
+                const timeContentId = timeContentIdMap[currentCategory];
+                if (timeContentId) {{
+                    const timeContentElement = document.getElementById(timeContentId);
+                    if (timeContentElement) {{
+                        timeContentElement.classList.add('active');
+                        timeContentElement.style.display = 'block';
+                    }}
                 }}
             }}
             
@@ -857,8 +1136,9 @@ class CleanRedditDashboard:
                 const buttonsToRemove = categoryTabs.querySelectorAll('.tab-btn:not(#allBtn)');
                 buttonsToRemove.forEach(btn => btn.remove());
                 // Add new category buttons based on current category
-                if (categoryData[currentCategory] && categoryData[currentCategory][timeFilter]) {{
-                    allBtn.insertAdjacentHTML('afterend', categoryData[currentCategory][timeFilter]);
+                const categoryDataKey = currentCategory === 'entertainment' ? 'movies_shows' : currentCategory;
+                if (categoryData[categoryDataKey] && categoryData[categoryDataKey][timeFilter]) {{
+                    allBtn.insertAdjacentHTML('afterend', categoryData[categoryDataKey][timeFilter]);
                 }}
                 
                 // Reset category filter to 'all'
@@ -937,7 +1217,7 @@ class CleanRedditDashboard:
             summaryContent.innerHTML = '<div class=\"summary-loading\">AI is analyzing posts in this category... This may take a few seconds.</div>';
             
             try {{
-                const response = await fetch('http://localhost:5001/summarize', {{
+                const response = await fetch('http://localhost:5002/summarize', {{
                     method: 'POST',
                     headers: {{
                         'Content-Type': 'application/json',
@@ -968,7 +1248,7 @@ class CleanRedditDashboard:
                         <div><strong>Summarization Failed</strong></div>
                         <div style=\"margin-top: 8px;\">${{result.error}}</div>
                         <div style=\"margin-top: 10px; font-size: 0.9em;\">
-                            Make sure the AI service is running: <code>python ai_summarizer.py</code>
+                            Make sure the AI service is running: <code>python services/ai_summarizer.py</code>
                         </div>
                     `;
                 }}
@@ -980,7 +1260,7 @@ class CleanRedditDashboard:
                     <div><strong>Connection Error</strong></div>
                     <div style=\"margin-top: 8px;\">Could not connect to AI service.</div>
                     <div style=\"margin-top: 10px; font-size: 0.9em;\">
-                        Please start the AI service: <code>python ai_summarizer.py</code>
+                        Please start the AI service: <code>python services/ai_summarizer.py</code>
                     </div>
                 `;
             }}
@@ -1259,6 +1539,63 @@ class CleanRedditDashboard:
             }}
         }}
         
+        
+        async function toggleComments(button) {{
+            const postCard = button.closest('.post-card');
+            const comments = postCard.querySelector('.post-comments');
+            const postId = postCard.dataset.postId;
+            
+            if (comments && comments.style.display === 'none') {{
+                // Check if comments are already loaded
+                if (comments.innerHTML.trim() === '' || comments.innerHTML.includes('Loading...')) {{
+                    // Show loading state
+                    comments.innerHTML = '<div class="loading-comments">Loading top comments...</div>';
+                    comments.style.display = 'block';
+                    button.textContent = 'Loading...';
+                    button.disabled = true;
+                    
+                    try {{
+                        // Fetch comments from live API
+                        const response = await fetch(`http://127.0.0.1:5001/api/comments/${{postId}}?limit=3&min_score=2`);
+                        const data = await response.json();
+                        
+                        if (data.success && data.comments.length > 0) {{
+                            // Build comments HTML
+                            let commentsHtml = '<div class="comments-list">';
+                            data.comments.forEach(comment => {{
+                                commentsHtml += `
+                                    <div class="comment-item">
+                                        <div class="comment-meta">
+                                            <span class="comment-author">${{comment.author}}</span>
+                                            <span class="comment-score">+${{comment.score}}</span>
+                                        </div>
+                                        <div class="comment-text">${{comment.text}}</div>
+                                    </div>
+                                `;
+                            }});
+                            commentsHtml += '</div>';
+                            comments.innerHTML = commentsHtml;
+                        }} else {{
+                            comments.innerHTML = '<div class="no-comments">No comments available or API service not running.</div>';
+                        }}
+                    }} catch (error) {{
+                        console.error('Error fetching comments:', error);
+                        comments.innerHTML = '<div class="error-comments">Error loading comments. Make sure the comment API is running on port 5001.</div>';
+                    }}
+                    
+                    button.textContent = 'Hide Comments';
+                    button.disabled = false;
+                }} else {{
+                    // Comments already loaded, just show them
+                    comments.style.display = 'block';
+                    button.textContent = 'Hide Comments';
+                }}
+            }} else if (comments) {{
+                comments.style.display = 'none';
+                button.textContent = 'View Top Comments';
+            }}
+        }}
+        
         document.addEventListener('DOMContentLoaded', function() {{
             const searchInput = document.getElementById('searchInput');
             if (searchInput) {{
@@ -1281,15 +1618,50 @@ class CleanRedditDashboard:
         return output_file
     
     def _generate_category_tabs(self, time_filter='weekly'):
-        """Generate category filter tabs for specified time filter"""
+        """Generate category filter tabs for specified time filter in priority order"""
         df = self.weekly_df if time_filter == 'weekly' else self.daily_df
         if df.empty:
             return ""
-            
+        
+        # Define category priority based on current main category
+        if hasattr(self, 'current_category'):
+            if self.current_category == 'travel':
+                category_priority = [
+                    'Travel Advice', 'Solo Travel', 'Budget Travel',
+                    'Asian Travel', 'European Travel', 'American Travel', 'Adventure Travel'
+                ]
+            elif self.current_category == 'entertainment':
+                category_priority = [
+                    'Recommendation Requests', 'Reviews & Discussions', 'News & Announcements',
+                    'Lists & Rankings', 'Identification & Help'
+                ]
+            else:  # finance
+                category_priority = [
+                    'Analysis & Education', 'Market News & Politics', 'Questions & Help',
+                    'Personal Trading Stories', 'Community Discussion', 'Memes & Entertainment'
+                ]
+        else:
+            # Fallback to value_counts order
+            category_priority = list(df['category'].value_counts().index)
+        
+        # Get available categories with counts
+        category_counts = df['category'].value_counts()
+        
         tabs = ""
-        for category, count in df['category'].value_counts().items():
-            safe_category = category.replace(' ', '_').replace('&', 'and').lower()
-            tabs += f'<button class="tab-btn" onclick="showCategory(\'{safe_category}\')">{category} ({count})</button>\n'
+        # Add categories in priority order
+        for category in category_priority:
+            if category in category_counts:
+                count = category_counts[category]
+                safe_category = category.replace(' ', '_').replace('&', 'and').lower()
+                tabs += f'<button class="tab-btn" onclick="showCategory(\'{safe_category}\')">{category} ({count})</button>\n'
+        
+        # Add any unexpected categories at the end
+        for category in category_counts.index:
+            if category not in category_priority:
+                count = category_counts[category]
+                safe_category = category.replace(' ', '_').replace('&', 'and').lower()
+                tabs += f'<button class="tab-btn" onclick="showCategory(\'{safe_category}\')">{category} ({count})</button>\n'
+        
         return tabs
     
     def _generate_posts_html(self, time_filter='weekly'):
@@ -1300,21 +1672,19 @@ class CleanRedditDashboard:
             
         posts_html = ""
         
-        # Define category priority order (most important first)
+        # Define category priority order for finance (logical flow)
         category_priority = [
             'Analysis & Education',
-            'Market News & Politics', 
-            'Personal Trading Stories',
+            'Market News & Politics',
             'Questions & Help',
+            'Personal Trading Stories',
             'Community Discussion',
             'Memes & Entertainment'
         ]
         
-        # Get categories in priority order, only including ones that exist in data
-        available_categories = df['category'].unique()
-        ordered_categories = [cat for cat in category_priority if cat in available_categories]
-        # Add any unexpected categories at the end
-        ordered_categories.extend([cat for cat in available_categories if cat not in category_priority])
+        # Order categories by post count (most to least) to match sidebar order
+        category_counts = df['category'].value_counts()
+        ordered_categories = list(category_counts.index)
         
         for category in ordered_categories:
             category_posts = df[df['category'] == category].sort_values('popularity_score', ascending=False)
@@ -1362,6 +1732,18 @@ class CleanRedditDashboard:
             tabs += f'<button class="tab-btn" onclick="showCategory(\'{safe_category}\')">{category} ({count})</button>\n'
         return tabs
     
+    def _generate_travel_category_tabs(self, time_filter='weekly'):
+        """Generate simple category filter tabs for unified travel data"""
+        df = self.datasets['travel'][time_filter] if 'travel' in self.datasets else pd.DataFrame()
+        if df.empty:
+            return ""
+            
+        tabs = ""
+        for category, count in df['category'].value_counts().items():
+            safe_category = category.replace(' ', '_').replace('&', 'and').lower()
+            tabs += f'<button class="tab-btn" onclick="showCategory(\'{safe_category}\')">{category} ({count})</button>\n'
+        return tabs
+    
     def _generate_entertainment_posts_html(self, time_filter='weekly'):
         """Generate HTML for entertainment posts"""
         df = self.weekly_entertainment_df if time_filter == 'weekly' else self.daily_entertainment_df
@@ -1370,20 +1752,18 @@ class CleanRedditDashboard:
             
         posts_html = ""
         
-        # Define category priority order for entertainment
+        # Entertainment category priority - logical flow starting with Recommendation Requests
         category_priority = [
             'Recommendation Requests',
-            'Reviews & Discussions', 
+            'Reviews & Discussions',
             'News & Announcements',
             'Lists & Rankings',
             'Identification & Help'
         ]
         
-        # Get categories in priority order, only including ones that exist in data
-        available_categories = df['category'].unique()
-        ordered_categories = [cat for cat in category_priority if cat in available_categories]
-        # Add any unexpected categories at the end
-        ordered_categories.extend([cat for cat in available_categories if cat not in category_priority])
+        # Order categories by post count (most to least) to match sidebar order
+        category_counts = df['category'].value_counts()
+        ordered_categories = list(category_counts.index)
         
         for category in ordered_categories:
             category_posts = df[df['category'] == category].sort_values('popularity_score', ascending=False)
@@ -1432,15 +1812,49 @@ class CleanRedditDashboard:
             selftext = ''
         search_content = html.escape(str(selftext).lower()[:500])  # Limit content length
         
+        # Process top comments
+        top_comments = post.get('top_comments', '[]')
+        has_comments = False
+        comments_html = ""
+        
+        if top_comments and top_comments != '[]':
+            try:
+                import json
+                comments_data = json.loads(top_comments)
+                if comments_data:
+                    has_comments = True
+                    comments_html = "<div class='comments-list'>"
+                    for comment in comments_data[:3]:  # Display top 3 comments
+                        comment_text = html.escape(comment.get('text', ''))
+                        comment_score = comment.get('score', 0)
+                        comment_author = html.escape(comment.get('author', '[deleted]'))
+                        comments_html += f"""
+                        <div class='comment-item'>
+                            <div class='comment-meta'>
+                                <span class='comment-author'>{comment_author}</span>
+                                <span class='comment-score'>👍 {comment_score}</span>
+                            </div>
+                            <div class='comment-text'>{comment_text}</div>
+                        </div>
+                        """
+                    comments_html += "</div>"
+            except (json.JSONDecodeError, TypeError):
+                has_comments = False
+                comments_html = "<p>Comments could not be loaded.</p>"
+        
         # Ticker extraction removed
         
         time_ago = self._time_ago(post['created_utc'])
+        
+        # Build comment button and section (always show button for live fetching)
+        comment_button = f"<button class='expand-btn' onclick='toggleComments(this)'>View Top Comments</button>"
+        comment_section = f"<div class='post-comments' style='display: none;'></div>"
         
         return f"""
         <div class="post-card {visibility_class}" data-category="{category}" 
              data-popularity="{post['popularity_score']}" data-score="{post['score']}" 
              data-comments="{post['num_comments']}" data-time="{post['created_utc']}"
-             data-search-title="{search_title}"
+             data-post-id="{post['post_id']}" data-search-title="{search_title}"
              data-search-content="{search_content}">
             <div class="post-header">
                 <h3 class="post-title">{title_display}</h3>
@@ -1454,11 +1868,13 @@ class CleanRedditDashboard:
             <div class="post-actions">
                 <a href="{post['url']}" target="_blank" class="view-btn">View Post</a>
                 <button class="expand-btn" onclick="toggleDetails(this)">Show Details</button>
+                {comment_button}
             </div>
             <div class="post-details" style="display: none;">
                 <p><strong>Author:</strong> {post['author']}</p>
                 <p><strong>Content Preview:</strong> {str(selftext)[:300]}{'...' if len(str(selftext)) > 300 else ''}</p>
             </div>
+            {comment_section}
         </div>
         """
     
@@ -1475,5 +1891,5 @@ class CleanRedditDashboard:
             return f"{diff.seconds // 60}m ago"
 
 if __name__ == "__main__":
-    dashboard = CleanRedditDashboard('assets/week_reddit_posts.csv', 'assets/day_reddit_posts.csv')
+    dashboard = CleanRedditDashboard('assets')
     dashboard.generate_dashboard()

@@ -1,7 +1,10 @@
 {
-  "last_automated_extraction": "2025-07-25T23:26:44.179470",
-  "last_full_refresh": "2025-07-25T23:26:44.179470",
+  "last_automated_extraction": "2025-07-26T22:28:38.035817",
+  "last_full_refresh": "2025-07-26T22:28:38.035817",
   "total_updates": 1,
   "last_finance_update": null,
-  "last_entertainment_update": null
+  "last_entertainment_update": null,
+  "last_travel_tips_update": null,
+  "last_nature_adventure_update": null,
+  "last_regional_travel_update": null
 }

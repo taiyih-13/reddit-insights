@@ -8,13 +8,20 @@ import os
 import json
 import pandas as pd
 import re
+import sys
 from groq import Groq
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
+
+# Add the parent directory to the Python path so we can import from prompts
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from prompts.finance_prompt import create_comprehensive_finance_prompt
 from prompts.entertainment_prompt import create_entertainment_prompt
+from prompts.travel_tips_prompt import create_travel_tips_prompt
+from prompts.regional_travel_prompt import create_regional_travel_prompt
 
 # Load environment variables from .env file
 load_dotenv()
@@ -30,8 +37,17 @@ class RedditSummarizer:
         self.model = "llama-3.1-8b-instant"  # 131k context, 6k TPM on free tier
     
     def _detect_domain_from_category(self, category):
-        """Detect domain based on category name"""
-        # Entertainment categories
+        """Detect domain based on category name or explicit category"""
+        # Check for direct category matches first
+        travel_categories = ['travel_tips', 'regional_travel']
+        if category in travel_categories:
+            return category
+        if category == 'finance':
+            return 'finance'
+        if category == 'entertainment':
+            return 'entertainment'
+            
+        # Entertainment subcategories
         entertainment_categories = [
             'Recommendation Requests',
             'Reviews & Discussions', 
@@ -40,7 +56,7 @@ class RedditSummarizer:
             'Identification & Help'
         ]
         
-        # Finance categories
+        # Finance subcategories
         finance_categories = [
             'Personal Trading Stories',
             'Analysis & Education',
@@ -50,10 +66,18 @@ class RedditSummarizer:
             'Memes & Entertainment'
         ]
         
+        # Travel subcategories (using actual data column values)
+        travel_tips_categories = ['travel_advice', 'solo_travel', 'budget_travel']
+        regional_travel_categories = ['asian_travel', 'european_travel', 'american_travel', 'adventure_travel']
+        
         if category in entertainment_categories:
             return 'entertainment'
         elif category in finance_categories:
             return 'finance'
+        elif category in travel_tips_categories:
+            return 'travel_tips'
+        elif category in regional_travel_categories:
+            return 'regional_travel'
         else:
             return 'finance'  # Default fallback
     
@@ -63,23 +87,40 @@ class RedditSummarizer:
             # Detect domain from category if provided
             domain = self._detect_domain_from_category(category) if category else 'finance'
             
-            # Filename mapping for both domains
-            if domain == 'entertainment':
-                filename_map = {
+            # Filename mapping for all categories
+            filename_maps = {
+                'finance': {
+                    'weekly': 'week_finance_posts.csv',
+                    'daily': 'day_finance_posts.csv'
+                },
+                'entertainment': {
                     'weekly': 'week_entertainment_posts.csv',
                     'daily': 'day_entertainment_posts.csv'
+                },
+                'travel_tips': {
+                    'weekly': 'week_travel_tips_posts.csv',
+                    'daily': 'day_travel_tips_posts.csv'
+                },
+                'regional_travel': {
+                    'weekly': 'week_regional_travel_posts.csv',
+                    'daily': 'day_regional_travel_posts.csv'
                 }
-            else:  # Default to finance
-                filename_map = {
-                    'weekly': 'week_reddit_posts.csv',
-                    'daily': 'day_reddit_posts.csv'
-                }
+            }
+            
+            filename_map = filename_maps.get(domain, filename_maps['finance'])
             
             if time_filter not in filename_map:
                 raise ValueError("time_filter must be 'weekly' or 'daily'")
             
             filename = filename_map[time_filter]
             df = pd.read_csv(f'assets/{filename}')
+            
+            # Normalize column names for travel data
+            if domain == 'travel_tips' and 'travel_subcategory' in df.columns:
+                df['category'] = df['travel_subcategory']
+            elif domain == 'regional_travel' and 'regional_subcategory' in df.columns:
+                df['category'] = df['regional_subcategory']
+            
             return df, domain
             
         except FileNotFoundError:
@@ -117,6 +158,22 @@ class RedditSummarizer:
                     content = content[:2000] + "... [truncated]"
                 post_summary += f"\nContent: {content}"
             
+            # Add top comments if available
+            top_comments = post.get('top_comments', '[]')
+            if top_comments and top_comments != '[]':
+                try:
+                    import json
+                    comments_data = json.loads(top_comments)
+                    if comments_data:
+                        post_summary += f"\nTop Comments:"
+                        for i, comment in enumerate(comments_data[:3], 1):  # Use top 3 for AI processing
+                            comment_text = comment.get('text', '')[:150]  # Limit comment length
+                            comment_score = comment.get('score', 0)
+                            post_summary += f"\n  Comment {i} ({comment_score} upvotes): {comment_text}"
+                except (json.JSONDecodeError, TypeError):
+                    # Skip comments if JSON parsing fails
+                    pass
+            
             # Estimate tokens for this post
             post_tokens = self.estimate_tokens(post_summary)
             
@@ -142,11 +199,24 @@ class RedditSummarizer:
         """Create domain-appropriate prompt for AI summarization"""
         if domain == 'entertainment':
             return create_entertainment_prompt(posts_text, category, total_posts, time_filter)
-        else:
+        elif domain == 'travel_tips':
+            return create_travel_tips_prompt(posts_text, category, total_posts, time_filter)
+        elif domain == 'regional_travel':
+            return create_regional_travel_prompt(posts_text, category, total_posts, time_filter)
+        else:  # finance
             return create_comprehensive_finance_prompt(posts_text, category, total_posts, time_filter)
     
-    def remove_incomplete_sentences(self, text):
-        """Remove incomplete entertainment recommendations that are cut off"""
+    def remove_incomplete_sentences(self, text, category=None):
+        """Remove incomplete content based on category format"""
+        
+        # Route to category-specific filtering
+        if category == 'Recommendation Requests':
+            return self._filter_recommendation_format(text)
+        else:
+            return self._filter_general_format(text)
+    
+    def _filter_recommendation_format(self, text):
+        """Filter content for Recommendation Requests (pipe-separated format)"""
         lines = text.split('\n')
         complete_lines = []
         
@@ -180,6 +250,40 @@ class RedditSummarizer:
         
         return '\n'.join(complete_lines).strip()
     
+    def _filter_general_format(self, text):
+        """Filter content for general categories (Reviews, News, Lists, etc.)"""
+        lines = text.split('\n')
+        complete_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                complete_lines.append(line)
+                continue
+            
+            # Keep section headers and properly formatted content
+            if (line.startswith('**') or  # Section headers
+                line.startswith('#') or   # Alternative headers
+                line.endswith('.') or     # Complete sentences
+                line.endswith('!') or     # Exclamations
+                line.endswith('?') or     # Questions
+                line.endswith(':') or     # Colons (for lists, etc.)
+                line.endswith('"') or     # Quoted content
+                line.endswith("'") or     # Quoted content
+                '•' in line or           # Bullet points
+                '-' in line[:3]):        # Dash lists
+                complete_lines.append(line)
+            else:
+                # Only stop if line looks genuinely incomplete (very short or cut off)
+                if len(line) < 10 or line.endswith(',') or re.search(r'\b\w+\s*$', line):
+                    # Looks incomplete - stop here
+                    break
+                else:
+                    # Probably complete content, keep it
+                    complete_lines.append(line)
+        
+        return '\n'.join(complete_lines).strip()
+    
     def generate_summary(self, category, time_filter='weekly'):
         """Generate AI summary for a specific category"""
         try:
@@ -210,8 +314,8 @@ class RedditSummarizer:
             
             summary = response.choices[0].message.content
             
-            # Remove incomplete sentences
-            clean_summary = self.remove_incomplete_sentences(summary)
+            # Remove incomplete sentences with category-specific filtering
+            clean_summary = self.remove_incomplete_sentences(summary, category)
             
             return {
                 'success': True,
@@ -273,7 +377,7 @@ if __name__ == '__main__':
         exit(1)
     
     print("✅ Starting Flask API server...")
-    print("📊 Dashboard can now make requests to: http://localhost:5001/summarize")
+    print("📊 Dashboard can now make requests to: http://localhost:5002/summarize")
     
-    # Start Flask server on port 5001 to avoid conflicts
-    app.run(debug=True, port=5001, host='127.0.0.1')
+    # Start Flask server on port 5002 to avoid conflicts with comment fetcher
+    app.run(debug=True, port=5002, host='127.0.0.1')
