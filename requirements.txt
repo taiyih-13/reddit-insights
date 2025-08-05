@@ -1,0 +1,41 @@
+# Reddit Insights Platform Dependencies
+
+# Core Reddit API
+praw>=7.7.0
+
+# Data manipulation and analysis
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Database (Supabase)
+supabase>=2.0.0
+postgrest>=0.10.0
+
+# AI and NLP
+groq>=0.4.0
+openai>=1.0.0
+transformers>=4.30.0
+torch>=2.0.0
+scikit-learn>=1.3.0
+
+# Web scraping and HTTP
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# Utilities
+python-dotenv>=1.0.0
+tqdm>=4.65.0
+colorama>=0.4.6
+
+# Flask API (for refresh endpoints)
+flask>=2.3.0
+flask-cors>=4.0.0
+
+# Data visualization (optional)
+matplotlib>=3.7.0
+plotly>=5.15.0
+
+# Development and testing
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.0.0

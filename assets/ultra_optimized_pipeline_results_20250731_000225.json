@@ -1,0 +1,51 @@
+{
+  "pipeline_time": 383.051612,
+  "timestamp": "2025-07-31T00:02:25.023206",
+  "total_weekly_posts": 163,
+  "total_daily_posts": 7,
+  "total_api_calls": 111,
+  "estimated_time_saved_seconds": 0,
+  "time_savings_percent": 0,
+  "total_errors": 0,
+  "optimization_method": "ultra_memory_efficient_with_smart_caching",
+  "optimizations_applied": [
+    "lazy_ml_model_loading",
+    "memory_efficient_batching",
+    "domain_specific_caching",
+    "intelligent_api_throttling",
+    "chunked_data_processing"
+  ],
+  "cache_hit": false,
+  "domain_results": {
+    "entertainment": {
+      "weekly_posts": 0,
+      "weekly_saved": 0,
+      "daily_posts": 0,
+      "daily_saved": 0,
+      "total_api_calls": 28,
+      "extraction_time": 29.587479,
+      "error_count": 0,
+      "optimization": "ultra_memory_efficient"
+    },
+    "finance": {
+      "weekly_posts": 143,
+      "weekly_saved": 0,
+      "daily_posts": 7,
+      "daily_saved": 0,
+      "total_api_calls": 32,
+      "extraction_time": 192.639654,
+      "error_count": 0,
+      "optimization": "ultra_memory_efficient"
+    },
+    "travel": {
+      "weekly_posts": 20,
+      "weekly_saved": 0,
+      "daily_posts": 0,
+      "daily_saved": 0,
+      "total_api_calls": 51,
+      "extraction_time": 347.810755,
+      "error_count": 0,
+      "optimization": "ultra_memory_efficient"
+    }
+  }
+}

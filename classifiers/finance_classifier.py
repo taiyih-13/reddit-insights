@@ -1,9 +1,18 @@
 import pandas as pd
 import re
 from collections import defaultdict
+import sys
+import os
+
+# Add the parent directory to the Python path to import utils
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.sentiment_analyzer import StockSentimentAnalyzer
 
 class FinanceClassifier:
     def __init__(self):
+        # Initialize sentiment analyzer
+        self.sentiment_analyzer = StockSentimentAnalyzer()
+        
         # Define categories
         self.categories = {
             'Personal Trading Stories': 'personal',
@@ -149,10 +158,12 @@ class FinanceClassifier:
         return 'Community Discussion'
     
     def classify_dataframe(self, df):
-        """Classify all posts in a dataframe"""
+        """Classify all posts in a dataframe and add sentiment analysis"""
         results = []
+        sentiment_results = []
         
         for idx, row in df.iterrows():
+            # Existing classification
             category, confidence = self.classify_post(
                 title=row['title'],
                 flair=row.get('link_flair_text'),
@@ -163,11 +174,26 @@ class FinanceClassifier:
                 'category': category,
                 'confidence': confidence
             })
+            
+            # New: Stock sentiment analysis
+            sentiment_data = self.sentiment_analyzer.analyze_stock_mentions(
+                title=row['title'],
+                selftext=row.get('selftext', '')
+            )
+            sentiment_results.append(sentiment_data)
         
         # Add results to dataframe
         df_classified = df.copy()
         df_classified['category'] = [r['category'] for r in results]
         df_classified['classification_confidence'] = [r['confidence'] for r in results]
+        
+        # Add sentiment analysis columns
+        df_classified['stock_tickers'] = [r['tickers'] for r in sentiment_results]
+        df_classified['sentiment_compound'] = [r['sentiment_compound'] for r in sentiment_results]
+        df_classified['sentiment_label'] = [r['sentiment_label'] for r in sentiment_results]
+        df_classified['sentiment_positive'] = [r['sentiment_positive'] for r in sentiment_results]
+        df_classified['sentiment_neutral'] = [r['sentiment_neutral'] for r in sentiment_results]
+        df_classified['sentiment_negative'] = [r['sentiment_negative'] for r in sentiment_results]
         
         return df_classified
     

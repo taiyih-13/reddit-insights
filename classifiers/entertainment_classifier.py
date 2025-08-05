@@ -1,9 +1,17 @@
 import pandas as pd
 import re
 from collections import defaultdict
+import sys
+import os
+
+# Add utils to path for sentiment analyzer
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
+from optimized_entertainment_sentiment_analyzer import OptimizedEntertainmentSentimentAnalyzer
 
 class EntertainmentClassifier:
     def __init__(self):
+        # Initialize optimized entertainment sentiment analyzer  
+        self.sentiment_analyzer = OptimizedEntertainmentSentimentAnalyzer()
         # Define discussion-type categories  
         self.categories = {
             'Recommendation Requests': 'recommendations',
@@ -336,6 +344,7 @@ class EntertainmentClassifier:
         """Classify all posts in a dataframe, filtering out non-media posts"""
         results = []
         filtered_indices = []
+        sentiment_results = []
         
         for idx, row in df.iterrows():
             category, confidence = self.classify_post(
@@ -352,18 +361,34 @@ class EntertainmentClassifier:
                     'confidence': confidence
                 })
                 filtered_indices.append(idx)
+                
+                # Entertainment title sentiment analysis
+                sentiment_data = self.sentiment_analyzer.analyze_title_mentions(
+                    title=row['title'],
+                    selftext=row.get('selftext', '')
+                )
+                sentiment_results.append(sentiment_data)
         
         # Create dataframe with only media posts
         if filtered_indices:
             df_filtered = df.loc[filtered_indices].copy()
             df_filtered['category'] = [r['category'] for r in results]
             df_filtered['classification_confidence'] = [r['confidence'] for r in results]
+            
+            # Add entertainment sentiment columns
+            df_filtered['entertainment_titles'] = [s['entertainment_titles'] for s in sentiment_results]
+            df_filtered['sentiment_score'] = [s['sentiment_score'] for s in sentiment_results]
+            df_filtered['sentiment_label'] = [s['sentiment_label'] for s in sentiment_results]
+            
             return df_filtered
         else:
             # Return empty dataframe with same columns if no media posts found
             df_empty = df.iloc[0:0].copy()
             df_empty['category'] = []
             df_empty['classification_confidence'] = []
+            df_empty['entertainment_titles'] = []
+            df_empty['sentiment_score'] = []
+            df_empty['sentiment_label'] = []
             return df_empty
     
     def analyze_classification(self, df_classified, df_original=None):

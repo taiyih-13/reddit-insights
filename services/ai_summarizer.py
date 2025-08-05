@@ -20,8 +20,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from prompts.finance_prompt import create_comprehensive_finance_prompt
 from prompts.entertainment_prompt import create_entertainment_prompt
-from prompts.travel_tips_prompt import create_travel_tips_prompt
-from prompts.regional_travel_prompt import create_regional_travel_prompt
+from prompts.travel_prompt import create_travel_prompt
+from services.enhanced_database_service import get_enhanced_db_service
 
 # Load environment variables from .env file
 load_dotenv()
@@ -35,17 +35,17 @@ class RedditSummarizer:
         
         self.client = Groq(api_key=self.api_key)
         self.model = "llama-3.1-8b-instant"  # 131k context, 6k TPM on free tier
+        self.db_service = get_enhanced_db_service()
     
     def _detect_domain_from_category(self, category):
         """Detect domain based on category name or explicit category"""
-        # Check for direct category matches first
-        travel_categories = ['travel_tips', 'regional_travel']
-        if category in travel_categories:
-            return category
+        # Check for direct domain matches first
         if category == 'finance':
             return 'finance'
         if category == 'entertainment':
             return 'entertainment'
+        if category == 'travel':
+            return 'travel'
             
         # Entertainment subcategories
         entertainment_categories = [
@@ -66,65 +66,114 @@ class RedditSummarizer:
             'Memes & Entertainment'
         ]
         
-        # Travel subcategories (using actual data column values)
-        travel_tips_categories = ['travel_advice', 'solo_travel', 'budget_travel']
-        regional_travel_categories = ['asian_travel', 'european_travel', 'american_travel', 'adventure_travel']
+        # Travel subcategories (actual values from database)
+        travel_categories = [
+            'Europe', 'Asia', 'North America', 'South America', 'Oceania & Africa',
+            'General Travel Advice', 'Solo Travel', 'Budget Travel', 'Backpacking'
+        ]
         
         if category in entertainment_categories:
             return 'entertainment'
         elif category in finance_categories:
             return 'finance'
-        elif category in travel_tips_categories:
-            return 'travel_tips'
-        elif category in regional_travel_categories:
-            return 'regional_travel'
+        elif category in travel_categories:
+            return 'travel'
         else:
             return 'finance'  # Default fallback
     
     def load_reddit_data(self, time_filter='weekly', category=None):
-        """Load Reddit data from CSV files with domain detection"""
+        """Load Reddit data from Supabase database with domain detection"""
         try:
             # Detect domain from category if provided
             domain = self._detect_domain_from_category(category) if category else 'finance'
             
-            # Filename mapping for all categories
-            filename_maps = {
-                'finance': {
-                    'weekly': 'week_finance_posts.csv',
-                    'daily': 'day_finance_posts.csv'
-                },
-                'entertainment': {
-                    'weekly': 'week_entertainment_posts.csv',
-                    'daily': 'day_entertainment_posts.csv'
-                },
-                'travel_tips': {
-                    'weekly': 'week_travel_tips_posts.csv',
-                    'daily': 'day_travel_tips_posts.csv'
-                },
-                'regional_travel': {
-                    'weekly': 'week_regional_travel_posts.csv',
-                    'daily': 'day_regional_travel_posts.csv'
-                }
-            }
+            # Convert time_filter format
+            db_time_filter = 'week' if time_filter == 'weekly' else 'day'
             
-            filename_map = filename_maps.get(domain, filename_maps['finance'])
+            # Load data from database
+            df = self.db_service.get_posts_with_computed_fields(domain, db_time_filter)
             
-            if time_filter not in filename_map:
-                raise ValueError("time_filter must be 'weekly' or 'daily'")
+            if df.empty:
+                raise ValueError(f"No data found for domain: {domain}, time_filter: {db_time_filter}")
             
-            filename = filename_map[time_filter]
-            df = pd.read_csv(f'assets/{filename}')
-            
-            # Normalize column names for travel data
-            if domain == 'travel_tips' and 'travel_subcategory' in df.columns:
-                df['category'] = df['travel_subcategory']
-            elif domain == 'regional_travel' and 'regional_subcategory' in df.columns:
-                df['category'] = df['regional_subcategory']
+            # Generate categories from subreddits since computed fields aren't available yet
+            df['category'] = df['subreddit'].apply(self._derive_category_from_subreddit)
             
             return df, domain
             
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Reddit data file not found: {filename}")
+        except Exception as e:
+            raise Exception(f"Failed to load data from database: {str(e)}")
+    
+    def _derive_category_from_subreddit(self, subreddit):
+        """Derive category from subreddit name for AI summarization"""
+        subreddit = subreddit.lower()
+        
+        # Travel regional categories
+        europe_subs = ['travel_europe', 'uktravel', 'spain', 'france', 'germany', 'greece', 'portugal', 'visitingiceland', 'italytravel']
+        asia_subs = ['japantravel', 'thailandtourism', 'indiatravel', 'southeastasia', 'koreatravel', 'chinatravel', 'vietnamtravel', 'nepal', 'indonesia']
+        americas_subs = ['mexicotravel', 'usatravel', 'canadatravel', 'caribbeantravel', 'guatemala', 'costarica', 'braziltravel', 'argentina', 'chile', 'peru', 'colombia', 'ecuador']
+        oceania_africa_subs = ['australia', 'newzealand', 'southafrica', 'morocco', 'kenya', 'ethiopia']
+        travel_advice_subs = ['travel', 'travelnopics', 'travelhacks', 'onebag', 'shoestring']
+        solo_travel_subs = ['solotravel']
+        budget_travel_subs = ['shoestring', 'onebag']
+        backpacking_subs = ['backpacking']
+        
+        # Entertainment categories
+        recommendation_subs = ['moviesuggestions', 'ifyoulikeblank', 'suggestmeabook', 'booksuggestions', 'tipofmytongue', 'animesuggest']
+        review_subs = ['movies', 'television', 'truefilm', 'criterion', 'flicks', 'letterboxd', 'horror', 'horrormovies', 'documentaries']
+        music_subs = ['music', 'listentothis', 'wearethemusicmakers', 'edmproduction', 'makinghiphop']
+        gaming_subs = ['gaming', 'games']
+        streaming_subs = ['netflix', 'televisionsuggestions', 'disneyplus', 'hbomax', 'netflixbestof', 'anime']
+        
+        # Finance categories
+        trading_subs = ['wallstreetbets', 'daytrading', 'options', 'thetagang', 'pennystocks']
+        investing_subs = ['investing', 'stocks', 'securityanalysis', 'valueinvesting', 'stockmarket']
+        crypto_subs = ['bitcoin', 'cryptocurrency', 'ethtrader', 'forex']
+        personal_finance_subs = ['personalfinance', 'financialindependence']
+        
+        # Travel mapping
+        if subreddit in europe_subs:
+            return 'Europe'
+        elif subreddit in asia_subs:
+            return 'Asia'  
+        elif subreddit in americas_subs:
+            return 'North America'  # Simplified for now
+        elif subreddit in oceania_africa_subs:
+            return 'Oceania & Africa'
+        elif subreddit in solo_travel_subs:
+            return 'Solo Travel'
+        elif subreddit in budget_travel_subs:
+            return 'Budget Travel'
+        elif subreddit in backpacking_subs:
+            return 'Backpacking'
+        elif subreddit in travel_advice_subs:
+            return 'General Travel Advice'
+            
+        # Entertainment mapping
+        elif subreddit in recommendation_subs:
+            return 'Recommendation Requests'
+        elif subreddit in review_subs:
+            return 'Reviews & Discussions'
+        elif subreddit in music_subs:
+            return 'News & Announcements'  # Simplified
+        elif subreddit in gaming_subs:
+            return 'Reviews & Discussions'
+        elif subreddit in streaming_subs:
+            return 'Lists & Rankings'  # Simplified
+            
+        # Finance mapping
+        elif subreddit in trading_subs:
+            return 'Personal Trading Stories'
+        elif subreddit in investing_subs:
+            return 'Analysis & Education'
+        elif subreddit in crypto_subs:
+            return 'Market News & Politics'
+        elif subreddit in personal_finance_subs:
+            return 'Questions & Help'
+        
+        # Default fallback
+        else:
+            return 'General'
     
     def estimate_tokens(self, text):
         """Rough token estimation (1 token ≈ 4 chars)"""
@@ -199,10 +248,8 @@ class RedditSummarizer:
         """Create domain-appropriate prompt for AI summarization"""
         if domain == 'entertainment':
             return create_entertainment_prompt(posts_text, category, total_posts, time_filter)
-        elif domain == 'travel_tips':
-            return create_travel_tips_prompt(posts_text, category, total_posts, time_filter)
-        elif domain == 'regional_travel':
-            return create_regional_travel_prompt(posts_text, category, total_posts, time_filter)
+        elif domain == 'travel':
+            return create_travel_prompt(posts_text, category, total_posts, time_filter)
         else:  # finance
             return create_comprehensive_finance_prompt(posts_text, category, total_posts, time_filter)
     

@@ -1,0 +1,51 @@
+{
+  "pipeline_time": 422.353927,
+  "timestamp": "2025-08-01T16:22:16.479726",
+  "time_filter": "week",
+  "total_posts_extracted": 157,
+  "total_posts_saved": 0,
+  "total_errors": 157,
+  "overall_success_rate": 0.0,
+  "total_api_calls": 111,
+  "computed_fields_supported": false,
+  "domain_results": {
+    "entertainment": {
+      "total_posts": 0,
+      "inserted_count": 0,
+      "error_count": 0,
+      "api_calls_made": 28,
+      "extraction_time": 0
+    },
+    "finance": {
+      "total_posts": 129,
+      "inserted_count": 0,
+      "error_count": 129,
+      "success_rate": 0,
+      "api_calls_made": 32,
+      "extraction_time": 197.759188,
+      "computed_fields_supported": false,
+      "category_breakdown": {
+        "Market News & Politics": 39,
+        "Personal Trading Stories": 27,
+        "Questions & Help": 25,
+        "Community Discussion": 22,
+        "Analysis & Education": 10,
+        "Memes & Entertainment": 6
+      }
+    },
+    "travel": {
+      "total_posts": 28,
+      "inserted_count": 0,
+      "error_count": 28,
+      "success_rate": 0,
+      "api_calls_made": 51,
+      "extraction_time": 422.320691,
+      "computed_fields_supported": false,
+      "category_breakdown": {
+        "Budget Travel": 22,
+        "Solo Travel": 6
+      }
+    }
+  },
+  "extraction_method": "database_direct"
+}
